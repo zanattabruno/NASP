@@ -1,18 +1,4 @@
-> :memo: NOTE 1: This Master is being prepared to be published at *IEEE* Wireless Communications and *Networking Conference* (WCNC)
->
-> Main information results and proposed solution are not described here until the submission in the Conference
-
 # NASP - NETWORK SLICE AS A SERVICE PLATFORM FOR NEW-GENERATION NETWORKS BEYOND 5G
-
-An Applied Computing  master's dissertation repository developed by Felipe Grings.
-
-Link to Master's defense: https://youtu.be/m2SN5c9PoEo
-
-Master's thesis: (Not available yet)
-
-
-
-## Abstract
 
 The 5th generation of mobile telecommunications (5G) is rapidly adopted worldwide, ac- celerating the demands for highly flexible private networks. In this context, 5G has mobile net- work slicing as one of its main features, where the 3rd Generation Partnership Project (3GPP) defines three main use cases: massive Internet of Things (mIoT), enhanced Mobile BroadBand (eMBB), and Ultra Reliable Low Latency Communications (URLLC), along with their man- agement functions. Moreover, the European Telecommunications Standards Institute (ETSI) defines standards for Zero-touch network & Service Management (ZSM) without human inter- vention. However, the technical documents of these institutes fail to define End-to-End (E2E) management and integration among different domains and subnet instances. This work presents a network slice as a service platform (NASP) agnostically to 3GPP and non-3GPP networks. A NASP architecture is based on the main components, namely: (i) onboard requests for new slices at the business level, fulfilling the translation for definitions of physical instances, distri- butions, and interfaces among domains; (ii) hierarchy orchestrator working among management functions; and (iii) communication interfaces with network controllers. These configurations are based on the technical documents of entities such as 3GPP, ETSI, and O-RAN, following the study of overlapping designs and gaps among the different views. The NASP prototype was developed based on the proposed architecture, bringing implementations and solutions for an agnostic platform and provider of an end-to-end Network Slice as a Service. The tests were analyzed using two use cases (3GPP and Non-3GPP) with four different scenarios, i.e., mIoT, URLLC, 3GPP Shared, and Non-3GPP. The results pointed out the platform’s adaptabil- ity in serving different requests received by the Communication Service Management Function. Moreover, the evaluation showed the time to create a Network Slice Instance, where 68% is dedicated to the Core configuration. The tests also presented a 93% reduction in data session establishment time comparing the URLLC and Shared scenarios. Finally, the study presents the cost variation for operating the platform with the orchestration of 5 and 10 slices, presenting a variation of 112% between Edge and Central.
 
@@ -24,7 +10,7 @@ The project presents the architecture for a platform for NSaaS, considering the 
 
 ![NASP Architecture](./imgs/NASP-architecture.png)
 
-NASP manages three physical and distributed different domains, RAN, Transport, and Core, described by 3GPP and ETSI reference architectures as shown in Figure 4. The NASP architec- ture has four major components: (i) Onboard; (ii) Orchestration; (iii) Quality Assurance Closed Loops; (iv) Interfaces (RN1, TN1, CN1) to integrate with the controller as shown at the top of Figure 4. The NASP architecture describes the integration and components required on an NSaaS platform to onboard, deploy, and control the entire lifecycle of a network slice through all domains from a mobile network. Furthermore, the NASP architecture proposes a communi- cation flow and interfaces to instantiate all infrastructure necessary to establish an E2E slice, as seen in the lower part of Figure 4. The architecture also proposed the responsibilities for each domain and decision level in each closed loop to pursue SLAs set at the onboard process. In this way, the architecture is based on the responsibilities for each domain and at the decision level defined in the integration process. Each macro functionality of the NASP architecture as a service is described in the following.
+NASP manages three physical and distributed domains, RAN, Transport, and Core, described by 3GPP and ETSI reference architectures as shown in Figure 4. The NASP architecture has four major components: (i) Onboard; (ii) Orchestration; (iii) Quality Assurance Closed Loops; (iv) Interfaces (RN1, TN1, CN1) to integrate with the controller as shown at the top of Figure 4. The NASP architecture describes the integration and components required on an NSaaS platform to onboard, deploy, and control the entire lifecycle of a network slice through all domains from a mobile network. Furthermore, the NASP architecture proposes a communication flow and interfaces to instantiate all infrastructure necessary to establish an E2E slice, as seen in the lower part of Figure 4. The architecture also proposed the responsibilities for each domain and decision level in each closed loop to pursue SLAs set at the onboard process. In this way, the architecture is based on the responsibilities for each domain and at the decision level defined in the integration process. Each macro functionality of the NASP architecture as a service is described in the following.
 
 
 
