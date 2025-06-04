@@ -90,10 +90,6 @@
                                         "snssaiList": [
                                             {
                                                 "sst": 1,
-                                                "sd": 4227
-                                            },
-                                            {
-                                                "sst": 1,
                                                 "sd": 112233
                                             }
                                         ]
@@ -155,7 +151,7 @@
                                 "slices": [
                                     {
                                     "sst": 1,
-                                    "sd": 66051
+                                    "sd": 112233
                                     }
                                 ],
                                 "ignoreStreamIds": true
