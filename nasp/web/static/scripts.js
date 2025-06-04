@@ -104,10 +104,68 @@ function createNST(form) {
   });
 }
 
+// IMSI Range Validation and Processing Functions
+function validateIMSIRange(imsiRange) {
+  // Check for hyphen-separated format
+  if (!imsiRange.includes('-')) {
+    return false;
+  }
+  
+  var parts = imsiRange.split('-');
+  if (parts.length !== 2) {
+    return false;
+  }
+  
+  var start = parts[0].trim();
+  var end = parts[1].trim();
+  
+  // IMSI should be 15 digits
+  var imsiRegex = /^[0-9]{15}$/;
+  if (!imsiRegex.test(start) || !imsiRegex.test(end)) {
+    return false;
+  }
+  
+  // Start should be less than end
+  if (parseInt(start) >= parseInt(end)) {
+    return false;
+  }
+  
+  return true;
+}
+
+function parseIMSIRange(imsiRange) {
+  var parts = imsiRange.split('-');
+  var start = parts[0].trim();
+  var end = parts[1].trim();
+  var count = parseInt(end) - parseInt(start) + 1;
+  
+  return {
+    start: start,
+    end: end,
+    count: count,
+    range: imsiRange
+  };
+}
+
 function createSliceGSMA(form) {
   let formData = new FormData(form)
   var object = {};
   formData.forEach((value, key) => object[key] = value);
+  
+  // IMSI Range validation and processing
+  if (object.imsi_range) {
+    if (!validateIMSIRange(object.imsi_range)) {
+      alert("Invalid IMSI range format. Please use format: START-END (e.g., 208950000000001-208950000000010)");
+      return;
+    }
+    // Parse IMSI range
+    var imsiData = parseIMSIRange(object.imsi_range);
+    object.imsi_start = imsiData.start;
+    object.imsi_end = imsiData.end;
+    object.imsi_count = imsiData.count;
+    console.log("IMSI Range processed:", imsiData);
+  }
+  
   var json = JSON.stringify(object);
   var data = JSON.parse(json)
   data.description = JSON.parse(data.description)

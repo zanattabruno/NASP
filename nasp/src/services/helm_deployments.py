@@ -20,9 +20,27 @@ class NsmfService():
         try:
             logging.info("allocNSI")
             
+            # Process IMSI Range data
+            imsi_range = req.json.get("imsi_range", "")
+            imsi_data = {}
+            
+            if imsi_range:
+                logging.info(f"Processing IMSI Range: {imsi_range}")
+                imsi_data = self.process_imsi_range(imsi_range)
+                logging.info(f"IMSI Data processed: {imsi_data}")
+            
             S_NSSAI = "1"+f"2744{int(random.random()*100)}"
             logging.info(f"S_NSSAI Selected = {S_NSSAI}")
-            data = {"name": req.json["name"], "description": req.json["description"], "S_NSSAI": S_NSSAI}
+            
+            # Include IMSI data in the stored information
+            data = {
+                "name": req.json["name"], 
+                "description": req.json["description"], 
+                "S_NSSAI": S_NSSAI,
+                "imsi_range": imsi_range,
+                "imsi_data": imsi_data
+            }
+            
             logging.info(data)
             # Added url to post data to rAppNASP
             self.add_to_db(data, "nsi", "http://10.109.114.164/create_slice_policy")
@@ -85,6 +103,14 @@ class NsmfService():
         """
         try:
             logging.info("Start Deploy CN")
+            
+            # Extract IMSI range data if available
+            imsi_range = req.json.get("imsi_range", "")
+            if imsi_range:
+                logging.info(f"Deploying network slice with IMSI range: {imsi_range}")
+                # You can use this IMSI data to configure network functions
+                # For example, configure AMF with specific PLMN for this IMSI range
+            
             namespace = "ns-"+nssai
             #self.create_delay(210)
             self.create_ns(namespace)
@@ -325,3 +351,52 @@ class NsmfService():
             return data
         except Exception as exception:
             return f"Bad Request - {exception}", 400
+
+    def process_imsi_range(self, imsi_range):
+        """Process and validate IMSI range"""
+        try:
+            # Parse IMSI range (format: START-END)
+            if '-' not in imsi_range:
+                raise ValueError("Invalid IMSI range format. Expected: START-END")
+            
+            start_imsi, end_imsi = imsi_range.split('-')
+            start_imsi = start_imsi.strip()
+            end_imsi = end_imsi.strip()
+            
+            # Validate IMSI format (15 digits)
+            if len(start_imsi) != 15 or len(end_imsi) != 15:
+                raise ValueError("IMSI must be exactly 15 digits")
+            
+            if not start_imsi.isdigit() or not end_imsi.isdigit():
+                raise ValueError("IMSI must contain only digits")
+            
+            # Calculate range details
+            start_num = int(start_imsi)
+            end_num = int(end_imsi)
+            
+            if start_num >= end_num:
+                raise ValueError("Start IMSI must be less than end IMSI")
+            
+            imsi_count = end_num - start_num + 1
+            
+            # Extract MCC, MNC (first 5-6 digits typically)
+            mcc = start_imsi[:3]  # Mobile Country Code
+            mnc = start_imsi[3:5] if start_imsi[5:6].isdigit() else start_imsi[3:6]  # Mobile Network Code
+            
+            return {
+                "start": start_imsi,
+                "end": end_imsi,
+                "count": imsi_count,
+                "mcc": mcc,
+                "mnc": mnc,
+                "range": imsi_range,
+                "valid": True
+            }
+            
+        except Exception as e:
+            logging.error(f"IMSI Range processing error: {str(e)}")
+            return {
+                "range": imsi_range,
+                "valid": False,
+                "error": str(e)
+            }
