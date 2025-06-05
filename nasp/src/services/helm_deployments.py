@@ -27,6 +27,14 @@ class NsmfService():
         "fallback_host": "localhost"
     }
     
+    # rApp Configuration
+    RAPP_CONFIG = {
+        "base_url": "http://10.107.249.103",
+        "endpoints": {
+            "create_slice_policy": "/create_slice_policy"
+        }
+    }
+    
     def __init__(self):
         """Initialize MongoDB connection"""
         self.mongo_client = None
@@ -131,7 +139,8 @@ class NsmfService():
             
             logging.info(data)
             # Added url to post data to rAppNASP
-            self.add_to_db(data, "nsi", "http://10.109.114.164/create_slice_policy")
+            rapp_url = f"{self.RAPP_CONFIG['base_url']}{self.RAPP_CONFIG['endpoints']['create_slice_policy']}"
+            self.add_to_db(data, "nsi", rapp_url)
             self.deploy_ns(req,S_NSSAI)
             return f"Alloc Completed with success", 200
         except Exception as exception:
