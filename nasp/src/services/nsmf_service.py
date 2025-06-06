@@ -7,11 +7,6 @@ import time
 import random
 import subprocess
 from pymongo import MongoClient
-from .slice_config import *
-
-BASE_HELM = "../helm_charts/*"
-BASE_HELM_TMP = "/tmp/helm-nasp-temp/"
-BASE_NFs = [ "nrf","amf", "nssf", "udr", "webui", "ausf", "pcf","smf", "udm", "upf", "mongodb"]
 
 
 class NsmfService():
@@ -19,7 +14,7 @@ class NsmfService():
     
     # MongoDB Configuration
     MONGO_CONFIG = {
-        "host": "192.168.86.116",  # Kubernetes service
+        "host": "192.168.86.40",  # Kubernetes service
         "port": 27017,
         "database": "open5gs",
         "collection": "subscribers",
@@ -141,7 +136,7 @@ class NsmfService():
             # Added url to post data to rAppNASP
             rapp_url = f"{self.RAPP_CONFIG['base_url']}{self.RAPP_CONFIG['endpoints']['create_slice_policy']}"
             self.add_to_db(data, "nsi", rapp_url)
-            self.deploy_ns(req,S_NSSAI)
+            # Note: Helm deployment functionality has been removed
             return f"Alloc Completed with success", 200
         except Exception as exception:
             return f"Bad Request - {str(exception)}", 400
@@ -194,47 +189,6 @@ class NsmfService():
         except Exception as exception:
             print(str(exception))
 
-    def deploy_ns(self, req, nssai="default"):
-        """
-        Create NS => Cp to tmp => Update configs => Deploy
-        """
-        try:
-            logging.info("Start Deploy CN")
-            
-            # Extract IMSI range data if available
-            imsi_range = req.json.get("imsi_range", "")
-            if imsi_range:
-                logging.info(f"Deploying network slice with IMSI range: {imsi_range}")
-                # You can use this IMSI data to configure network functions
-                # For example, configure AMF with specific PLMN for this IMSI range
-            
-            namespace = "ns-"+nssai
-            #self.create_delay(210)
-            self.create_ns(namespace)
-            self.create_helm_tmp(BASE_HELM)
-            NFs, amf_ip = self.update_slice_config(BASE_HELM_TMP, req)
-            logging.info(NFs)
-            for nf in NFs:
-                logging.info(self.install_helm(nf, BASE_HELM_TMP+nf, namespace))
-            
-            if not req.json["description"]["N3GPP Support"]:
-                logging.info("Deploying RAN")
-                RNFs = ["rantester"]
-                for Rnf in RNFs:
-                    logging.info(self.install_helm(Rnf, BASE_HELM_TMP+Rnf, namespace))
-
-            if req.json["description"].get("Slice Attributes").get("SSQ").get("Guaranteed Flow Bit Rate - Downlink") > 100000:
-                logging.info("Deploying Low latency Transport Network")
-            
-            logging.info("Deploying Transport")
-            time.sleep(0.5)
-            #self.deploy_transport_network(low_latency=False)
-
-            logging.info("Deploy Completed")
-        except Exception as e:
-            logging.error(f"Exception Thrown: {str(e)}")
-            raise Exception(e)
-
     def deploy_transport_network(self, low_latency=True):
         intents = []
         short_path = [
@@ -278,7 +232,6 @@ class NsmfService():
     def clear_environment(self):
         self.delete_delay()
         self.delete_onos_intents()
-        self.delete_ns()
         self.clear_all_subscribers()  # Clear subscribers from MongoDB
         try:
             open("../data/db/nsi.json", "w", encoding="utf-8").write("[]")
@@ -286,16 +239,7 @@ class NsmfService():
         except Exception as exception:
             return f"Bad Request - {exception}", 400
 
-    def delete_ns(self):
-        nsi_list = json.load(open("../data/db/nsi.json", "r"))
-        for nsi in nsi_list:
-            cmd = f'nohup kubectl delete ns ns-{nsi.get("S_NSSAI")} > /dev/null 2>&1 &'
-            try:
-                result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-                return f"{nsi.get('S_NSSAI')} Deleted Succefully"
-            except Exception as exception:
-                raise Exception(exception.output.decode('utf-8'))
-        return
+
 
     def delete_delay(self):
         cmd_list = [f'ssh 127.0.0.1 "tc qdisc del dev eth1 parent 1:1"',
@@ -326,49 +270,10 @@ class NsmfService():
             except Exception as exception:
                 raise Exception(exception.output.decode('utf-8'))
     
-    def create_ns(self, name):
-        cmd = f'kubectl create ns {name}'
-        try:
-            result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-            return result.decode('utf-8')
-        except Exception as exception:
-            raise Exception(exception.output.decode('utf-8'))
-        
-    def create_helm_tmp(self, path):
-        # Ensure the target directory exists
-        if not os.path.exists(BASE_HELM_TMP):
-            os.makedirs(BASE_HELM_TMP)
-        
-        cmd = f'cp -r {path} {BASE_HELM_TMP}'
-        try:
-            result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-            return result.decode('utf-8')
-        except Exception as exception:
-            raise Exception(exception.output.decode('utf-8'))
-        
-    def update_slice_config(self, base_path, req):
-        NFs_list = BASE_NFs.copy()
-        # if req["exposed"]:
-        #     enable_public_ip(req)
-        if req.json["description"]["N3GPP Support"]:
-            NFs_list.append("n3iwf")
-        # if not req["shared"]:
-        #     add_all_nfs(req)
-        # if req["availability"] > 99.99:
-        #     add_nf_redundance()
-        
-        # pdu_resource((req["UE Density"]/100)+0.45)
 
-        # update_UE_PDU_sessions(req)
-        return NFs_list, "amf-free5gc-amf-amf-0.amf-service"
-        
-    def install_helm(self, name,path,ns="default"):
-        cmd = f'helm -n {ns} install {name} {path}'
-        try:
-            result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-            return f"{name} Install with Success"
-        except Exception as exception:
-            raise Exception(exception.output.decode('utf-8'))
+
+
+
 
     def getAllNsi(self, request):
         """Get All NSIs"""

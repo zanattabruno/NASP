@@ -27,7 +27,6 @@ class NssmfRANService():
                 f"helm install {name} {name} -n 1274401-demo"
                 ]
             out = os.popen(";".join(commands))
-            # print(";".join(commands))
             return "OK"
         except Exception as exception:
             logging.error(str(exception))
@@ -36,7 +35,6 @@ class NssmfRANService():
     def get_all_nssi(self, request):
         """Get All NSSI"""
         try:
-            # deployed_list = os.popen("sudo helm list --filter 'core' -A").read()
             output = os.popen("helm list -A").read()
             print(output.split("\n")[1:])
             deployed_list = output.split("\n")[1:]

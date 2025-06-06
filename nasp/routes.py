@@ -5,7 +5,7 @@ from src.services.ControllerKeyService import ControllerKeyService
 from src.services.NssmfCoreService import NssmfCoreService
 from src.services.NssmfRANService import NssmfRANService
 # from src.services.NsmfService import NsmfService
-from src.services.helm_deployments import NsmfService
+from src.services.nsmf_service import NsmfService
 
 
 def configure(app):

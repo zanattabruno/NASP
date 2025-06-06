@@ -15,13 +15,6 @@ class NssmfCoreService():
                 if i.get("name") == name:
                     path = i.get("path")
 
-            # commands = [
-            #     f"DIR='{path}'",
-            #     f"cp -r $DIR {NSSAI['sd']}-core",
-            #     f'grep -rl "sst: 1" {NSSAI["sd"]}-core | xargs sed -i "s/sst: 1/sst: {NSSAI["sst"]}/g"',
-            #     f'grep -rl "sd: 112233" {NSSAI["sd"]}-core | xargs sed -i "s/sd: 112233/sd: {NSSAI["sd"]}/g"',
-            #     f"helm install {NSSAI['sd']}-core {NSSAI['sd']}-core -n 1274401-demo"
-            #     ]
             commands = [
                 f"kubectl create ns {NSSAI}",
                 f"helm install db mongodb/ -n {NSSAI}",
@@ -37,7 +30,6 @@ class NssmfCoreService():
                 f"helm install webui free5gc-webui/ -n {NSSAI}"
             ]
             out = os.popen(";".join(commands))
-            # print(";".join(commands))
             return "OK"
         except Exception as exception:
             logging.error(str(exception))
@@ -46,7 +38,6 @@ class NssmfCoreService():
     def get_all_nssi(self, request):
         """Get All NSSI CORE"""
         try:
-            # deployed_list = os.popen("sudo helm list --filter 'core' -A").read()
             output = os.popen("helm list -A").read()
             print(output.split("\n")[1:])
             deployed_list = output.split("\n")[1:]
@@ -85,15 +76,6 @@ class NssmfCoreService():
                 "path": "../helm_charts/core/free5gc"
             }
             nsst_list.append(new_nsst)
-            # nsst_list.append({  
-            #     "domain": "Core",
-            #     "name": "AMF",
-            #     "description": "NF AMF",
-            #     "id": "1",
-            #     "status": "Ready",
-            #     "is_shared": True,
-            #     "path": "../helm_charts/core/free5gc"
-            # })
             open("../data/db/nsst_core.json", "w", encoding="utf-8").write(json.dumps(nsst_list))
             return new_nsst
         except Exception as exception:
