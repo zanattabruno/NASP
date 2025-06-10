@@ -192,7 +192,65 @@ def nsmf(app):
         except Exception as exception:
             return str(exception), 500
 
+    @app.route(f"{prefix}/subscribers/", methods=['GET'])
+    def get_subscribers():
+        """Get subscribers by IMSI range"""
+        try:
+            Nsmf = NsmfService()
+            start_imsi = request.args.get('start_imsi')
+            end_imsi = request.args.get('end_imsi')
+            
+            if start_imsi and end_imsi:
+                subscribers = Nsmf.get_subscribers_by_imsi_range(start_imsi, end_imsi)
+                return {"subscribers": subscribers, "count": len(subscribers)}
+            else:
+                return {"error": "start_imsi and end_imsi parameters required"}, 400
+        except Exception as exception:
+            return str(exception), 500
 
+    @app.route(f"{prefix}/subscribers/", methods=['DELETE'])
+    def delete_subscribers():
+        """Delete subscribers by IMSI range"""
+        try:
+            Nsmf = NsmfService()
+            start_imsi = request.json.get('start_imsi')
+            end_imsi = request.json.get('end_imsi')
+            
+            if start_imsi and end_imsi:
+                success = Nsmf.delete_subscribers_by_imsi_range(start_imsi, end_imsi)
+                return {"success": success}
+            else:
+                return {"error": "start_imsi and end_imsi required in request body"}, 400
+        except Exception as exception:
+            return str(exception), 500
+
+    @app.route(f"{prefix}/test-auth-keys/", methods=['POST'])
+    def test_auth_keys():
+        """Test authentication key generation for a given IMSI and configuration"""
+        try:
+            Nsmf = NsmfService()
+            imsi = request.json.get('imsi')
+            auth_config = request.json.get('auth_config', {})
+            
+            if not imsi:
+                return {"error": "IMSI required"}, 400
+            
+            if not auth_config.get('method'):
+                auth_config['method'] = 'auto'
+            
+            k, opc = Nsmf._process_authentication_keys(imsi, auth_config)
+            
+            return {
+                "imsi": imsi,
+                "auth_method": auth_config.get('method'),
+                "keys": {
+                    "k": k,
+                    "opc": opc
+                },
+                "test_only": True
+            }
+        except Exception as exception:
+            return str(exception), 500
 def nssmf_core(app):
     """Nssmf Core Routes"""
     prefix = "/nssmfCore"

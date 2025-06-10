@@ -107,10 +107,248 @@
                             <input type="text" class="form-control" id="inputIMSI" value="208950000000001-208950000000003" name="imsi_range">
                         </div>
                     </div>
+                    <!-- New Authentication Keys Section -->
+                    <div class="form-group row">
+                        <label class="col-sm-2 p-3 col-form-label">Authentication Method</label>
+                        <div class="col-sm-10">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="auth_method" id="auth_auto" value="auto" checked>
+                                <label class="form-check-label" for="auth_auto">
+                                    Auto-generate keys for each IMSI
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="auth_method" id="auth_shared" value="shared">
+                                <label class="form-check-label" for="auth_shared">
+                                    Use shared keys for all IMSIs
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="auth_method" id="auth_pattern" value="pattern">
+                                <label class="form-check-label" for="auth_pattern">
+                                    Generate keys using IMSI-based pattern
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group row" id="shared_keys_section" style="display: none;">
+                        <label for="inputSharedK" class="col-sm-2 p-3 col-form-label">Shared K Key</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" id="inputSharedK" placeholder="32-character hex string (e.g., 465B5CE8B199B49FAA5F0A2EE238A6BC)" name="shared_k" maxlength="32" pattern="[0-9A-Fa-f]{32}">
+                            <small class="form-text text-muted">128-bit key in hexadecimal format (32 characters)</small>
+                        </div>
+                    </div>
+                    <div class="form-group row" id="shared_opc_section" style="display: none;">
+                        <label for="inputSharedOPc" class="col-sm-2 p-3 col-form-label">Shared OPc Key</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" id="inputSharedOPc" placeholder="32-character hex string (e.g., E8ED289DEBA952E4283B54E88E6183CA)" name="shared_opc" maxlength="32" pattern="[0-9A-Fa-f]{32}">
+                            <small class="form-text text-muted">128-bit OPc key in hexadecimal format (32 characters)</small>
+                        </div>
+                    </div>
+                    <div class="form-group row" id="pattern_options_section" style="display: none;">
+                        <label for="inputKeyPattern" class="col-sm-2 p-3 col-form-label">Key Pattern</label>
+                        <div class="col-sm-10">
+                            <select class="form-control" id="inputKeyPattern" name="key_pattern">
+                                <option value="imsi_derived">Derive from IMSI (deterministic)</option>
+                                <option value="sequential">Sequential increment from base</option>
+                                <option value="operator_specific">Operator-specific algorithm</option>
+                            </select>
+                            <input type="text" class="form-control mt-2" id="inputBaseK" placeholder="Base K key for pattern generation" name="base_k" maxlength="32" pattern="[0-9A-Fa-f]{32}">
+                            <input type="text" class="form-control mt-2" id="inputBaseOPc" placeholder="Base OPc key for pattern generation" name="base_opc" maxlength="32" pattern="[0-9A-Fa-f]{32}">
+                        </div>
+                    </div>
+                    <!-- Authentication Help Section -->
+                    <div class="form-group row">
+                        <div class="col-sm-12">
+                            <div class="alert alert-info">
+                                <h6><strong>Authentication Key Methods:</strong></h6>
+                                <ul class="mb-0 small">
+                                    <li><strong>Auto-generate:</strong> Creates unique random keys for each IMSI (default, most secure)</li>
+                                    <li><strong>Shared keys:</strong> Uses the same keys for all IMSIs in the range (testing/lab use)</li>
+                                    <li><strong>Pattern-based:</strong> Generates keys using algorithmic patterns (deterministic)</li>
+                                </ul>
+                                <p class="mb-0 mt-2 small"><strong>Note:</strong> K and OPc keys are 128-bit values (32 hexadecimal characters). These are critical for 5G authentication security.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <script>
+                        // Show/hide sections based on authentication method selection
+                        document.querySelectorAll('input[name="auth_method"]').forEach(radio => {
+                            radio.addEventListener('change', function() {
+                                document.getElementById('shared_keys_section').style.display = 'none';
+                                document.getElementById('shared_opc_section').style.display = 'none';
+                                document.getElementById('pattern_options_section').style.display = 'none';
+                                
+                                if (this.value === 'shared') {
+                                    document.getElementById('shared_keys_section').style.display = 'block';
+                                    document.getElementById('shared_opc_section').style.display = 'block';
+                                } else if (this.value === 'pattern') {
+                                    document.getElementById('pattern_options_section').style.display = 'block';
+                                }
+                            });
+                        });
+
+                        // Real-time validation for hex keys
+                        function validateKeyInput(input) {
+                            const value = input.value.toUpperCase();
+                            const isValid = /^[0-9A-F]*$/.test(value);
+                            
+                            if (!isValid) {
+                                input.setCustomValidity("Only hexadecimal characters (0-9, A-F) allowed");
+                                input.classList.add('is-invalid');
+                            } else if (value.length === 32) {
+                                input.setCustomValidity("");
+                                input.classList.remove('is-invalid');
+                                input.classList.add('is-valid');
+                            } else {
+                                input.setCustomValidity("Must be exactly 32 characters");
+                                input.classList.remove('is-valid');
+                                input.classList.add('is-invalid');
+                            }
+                        }
+
+                        // Add validation to key input fields
+                        ['inputSharedK', 'inputSharedOPc', 'inputBaseK', 'inputBaseOPc'].forEach(id => {
+                            const input = document.getElementById(id);
+                            if (input) {
+                                input.addEventListener('input', function() {
+                                    this.value = this.value.toUpperCase();
+                                    validateKeyInput(this);
+                                });
+                            }
+                        });
+                    </script>
                     <div class="form-group row">
                         <label for="inputEmail3" class="col-sm-2  p-3 col-form-label">GSMA Request Structure</label>
                         <div class="col-sm-10">
-                            <textarea type="text" class="form-control" id="inputGSMA" placeholder="{availability:1}" name="description" rows="20" cols="80"></textarea>
+                            <textarea type="text" class="form-control" id="inputGSMA" name="description" rows="20" cols="80">{
+    "type": "custom",
+    "resources": "custom",
+    "N3GPP Support": false,
+    "Slice Attributes": {
+        "availability": 1,
+        "MMTel": true,
+        "N3GPP Support": true,
+        "SSC": 1,
+        "DN": 1,
+        "Supported Data Network": "internet",
+        "SSQ": {
+            "Priority Level": 1,
+            "Packet Delay Budget": 0.000120,
+            "Packet Error Rate": 0.00000010,
+            "Maximum Data Burts Volume": 0.0010,
+            "Guaranteed Flow Bit Rate - Downlink": 100000,
+            "Guaranteed Flow Bit Rate - Uplink": 100000,
+            "Max Flow Bit Rate - Downlink": 100000,
+            "Max Flow Bit Rate - Uplink": 100000,
+            "Maximum Packet Loss Rate": 100000
+        },
+        "Supported device velocity": 10,
+        "Synchronicity": "Between BS and UE",
+        "Accuracy": 0.0000001,
+        "Shared": false,
+        "UE density": 10000,
+        "Maximum number of UEs": 100000,
+        "Maximum number of PDU sessions": 1000,
+        "exposed": true,
+        "shared": true
+    },
+    "resource_description": {
+        "core": {
+            "nfs": [
+                {
+                    "name": "amf",
+                    "node": [
+                        "new_york"
+                    ],
+                    "config": {
+                        "plmnSupportList": [
+                            {
+                                "plmnId": {
+                                    "mcc": 208,
+                                    "mnc": 93
+                                },
+                                "snssaiList": [
+                                    {
+                                        "sst": 1,
+                                        "sd": 112233
+                                    }
+                                ]
+                            }
+                        ],
+                        "supportDnnList": [
+                            "internet"
+                        ]
+                    }
+                },
+                {
+                    "name": "nrf"
+                },
+                {
+                    "name": "ausf"
+                },
+                {
+                    "name": "nssf"
+                },
+                {
+                    "name": "pcf"
+                },
+                {
+                    "name": "udm"
+                },
+                {
+                    "name": "udr"
+                },
+                {
+                    "name": "smf"
+                },
+                {
+                    "name": "upf"
+                }
+            ]
+        },
+        "ran": {
+            "nfs": [
+                {
+                    "name": "ueransim",
+                    "type": "gnb",
+                    "replicas": 2,
+                    "node": [],
+                    "config": {
+                        "mcc": "208",
+                        "mnc": "93",
+                        "nci": 411,
+                        "idLength": 32,
+                        "tac": 1,
+                        "linkIp": "127.0.0.1",
+                        "ngapIp": "127.0.0.1",
+                        "gtpIp": "127.0.0.1",
+                        "amfConfigs": [
+                            {
+                            "address": "127.0.0.1",
+                            "port": 38412
+                            }
+                        ],
+                        "slices": [
+                            {
+                            "sst": 1,
+                            "sd": 112233
+                            }
+                        ],
+                        "ignoreStreamIds": true
+                        }
+                }
+            ]
+        },
+        "tn": {
+            "routes": [
+                {
+                    "name": "backhaul"
+                }
+            ]
+        }
+    }
+}</textarea>
                         </div>
                     </div>
                 </form>

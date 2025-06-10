@@ -99,6 +99,11 @@ class NsmfService():
             imsi_range = req.json.get("imsi_range", "")
             imsi_data = {}
             
+            # Process authentication configuration
+            auth_config = req.json.get("auth_config")
+            if auth_config:
+                logging.info(f"Processing authentication config: {auth_config.get('method', 'auto')}")
+            
             if imsi_range:
                 logging.info(f"Processing IMSI Range: {imsi_range}")
                 imsi_data = self.process_imsi_range(imsi_range)
@@ -111,6 +116,7 @@ class NsmfService():
                     nsi_data_for_subscribers = {
                         "S_NSSAI": S_NSSAI,
                         "imsi_data": imsi_data,
+                        "auth_config": auth_config,
                         "description": req.json.get("description", {}),
                         "resource_description": req.json.get("resource_description", {})
                     }
@@ -404,12 +410,18 @@ class NsmfService():
                 "error": str(e)
             }
 
-    def create_subscriber_document(self, imsi, slice_configs=None):
+    def create_subscriber_document(self, imsi, slice_configs=None, auth_config=None):
         """Create a subscriber document for MongoDB"""
         try:
-            # Generate random security keys
-            k = self._generate_security_key()
-            opc = self._generate_opc_key()
+            # Generate or use provided security keys based on auth_config
+            if auth_config:
+                k, opc = self._process_authentication_keys(imsi, auth_config)
+            else:
+                # Default: generate random keys
+                k = self._generate_security_key()
+                opc = self._generate_opc_key()
+            
+            logging.info(f"Generated/assigned keys for IMSI {imsi}: K={k[:8]}..., OPc={opc[:8]}...")
             
             # Default slice configuration if none provided
             if not slice_configs:
@@ -468,7 +480,92 @@ class NsmfService():
             logging.error(f"Error creating subscriber document: {str(e)}")
             return None
 
-    def create_subscribers_from_imsi_range(self, imsi_data, slice_configs=None):
+    def _process_authentication_keys(self, imsi, auth_config):
+        """Process authentication keys based on configuration"""
+        method = auth_config.get('method', 'auto')
+        
+        if method == 'shared':
+            # Use shared keys for all subscribers
+            k = auth_config.get('k') or self._generate_security_key()
+            opc = auth_config.get('opc') or self._generate_opc_key()
+            return k, opc
+            
+        elif method == 'pattern':
+            # Generate keys using pattern
+            pattern = auth_config.get('pattern', 'imsi_derived')
+            base_k = auth_config.get('base_k')
+            base_opc = auth_config.get('base_opc')
+            
+            if pattern == 'imsi_derived':
+                k = self._derive_key_from_imsi(imsi, base_k) if base_k else self._generate_imsi_derived_key(imsi)
+                opc = self._derive_key_from_imsi(imsi, base_opc, offset=1) if base_opc else self._generate_imsi_derived_opc(imsi)
+            elif pattern == 'sequential':
+                k = self._generate_sequential_key(imsi, base_k) if base_k else self._generate_security_key()
+                opc = self._generate_sequential_key(imsi, base_opc, is_opc=True) if base_opc else self._generate_opc_key()
+            else:
+                # operator_specific or fallback
+                k = self._generate_operator_specific_key(imsi, base_k) if base_k else self._generate_security_key()
+                opc = self._generate_operator_specific_key(imsi, base_opc, is_opc=True) if base_opc else self._generate_opc_key()
+                
+            return k, opc
+            
+        else:
+            # Auto-generate random keys (default behavior)
+            return self._generate_security_key(), self._generate_opc_key()
+
+    def _derive_key_from_imsi(self, imsi, base_key, offset=0):
+        """Derive a key from IMSI using base key"""
+        import hashlib
+        # Combine IMSI with base key and offset for deterministic generation
+        data = f"{imsi}{base_key}{offset}".encode('utf-8')
+        hash_obj = hashlib.sha256(data)
+        return hash_obj.hexdigest()[:32].upper()
+
+    def _generate_imsi_derived_key(self, imsi):
+        """Generate key directly from IMSI"""
+        import hashlib
+        # Use IMSI and a fixed salt for K key generation
+        data = f"{imsi}_K_NASP_2024".encode('utf-8')
+        hash_obj = hashlib.sha256(data)
+        return hash_obj.hexdigest()[:32].upper()
+
+    def _generate_imsi_derived_opc(self, imsi):
+        """Generate OPc key directly from IMSI"""
+        import hashlib
+        # Use IMSI and a different salt for OPc key generation
+        data = f"{imsi}_OPC_NASP_2024".encode('utf-8')
+        hash_obj = hashlib.sha256(data)
+        return hash_obj.hexdigest()[:32].upper()
+
+    def _generate_sequential_key(self, imsi, base_key, is_opc=False):
+        """Generate sequential key from base"""
+        try:
+            # Extract the last 8 digits of IMSI as sequence number
+            imsi_suffix = int(imsi[-8:])
+            base_int = int(base_key, 16)
+            
+            # Add sequence offset (different for K and OPc)
+            offset = imsi_suffix * (2 if is_opc else 1)
+            new_key_int = (base_int + offset) % (2**128)  # Keep within 128-bit range
+            
+            return f"{new_key_int:032X}"
+        except:
+            # Fallback to random generation
+            return self._generate_opc_key() if is_opc else self._generate_security_key()
+
+    def _generate_operator_specific_key(self, imsi, base_key, is_opc=False):
+        """Generate operator-specific key (can be customized per operator)"""
+        import hashlib
+        # Extract MCC/MNC from IMSI (first 5-6 digits)
+        mcc_mnc = imsi[:6]  # Assuming 3-digit MCC + 3-digit MNC
+        
+        # Operator-specific derivation
+        operator_salt = "OPC_OP" if is_opc else "K_OP"
+        data = f"{mcc_mnc}{base_key}{operator_salt}_{imsi}".encode('utf-8')
+        hash_obj = hashlib.sha256(data)
+        return hash_obj.hexdigest()[:32].upper()
+
+    def create_subscribers_from_imsi_range(self, imsi_data, slice_configs=None, auth_config=None):
         """Create subscribers in MongoDB from IMSI range data"""
         try:
             if self.subscribers_collection is None:
@@ -484,6 +581,8 @@ class NsmfService():
             created_count = 0
             
             logging.info(f"Creating subscribers for IMSI range: {imsi_data['start']} to {imsi_data['end']}")
+            if auth_config:
+                logging.info(f"Using authentication method: {auth_config.get('method', 'auto')}")
             
             # Create subscribers for each IMSI in the range
             for imsi_num in range(start_imsi, end_imsi + 1):
@@ -494,8 +593,8 @@ class NsmfService():
                     logging.info(f"Subscriber with IMSI {imsi} already exists, skipping")
                     continue
                 
-                # Create subscriber document with slice configs
-                subscriber_doc = self.create_subscriber_document(imsi, slice_configs)
+                # Create subscriber document with slice configs and auth config
+                subscriber_doc = self.create_subscriber_document(imsi, slice_configs, auth_config)
                 
                 if subscriber_doc:
                     try:
@@ -527,6 +626,9 @@ class NsmfService():
                 logging.error("No valid IMSI data found in NSI")
                 return False
             
+            # Extract authentication configuration if provided
+            auth_config = nsi_data.get("auth_config")
+            
             # Extract slice configuration from NSI data
             slice_configs = self.extract_slice_config_from_nsi(nsi_data)
             
@@ -534,12 +636,155 @@ class NsmfService():
             for i, slice_config in enumerate(slice_configs):
                 logging.info(f"Slice {i+1}: SST={slice_config.get('sst')}, SD={slice_config.get('sd')}")
             
-            # Create subscribers with the extracted slice configuration
-            return self.create_subscribers_from_imsi_range(imsi_data, slice_configs)
+            # Create subscribers with the extracted slice configuration and auth config
+            return self.create_subscribers_from_imsi_range(imsi_data, slice_configs, auth_config)
             
         except Exception as e:
             logging.error(f"Error creating subscribers from NSI data: {str(e)}")
             return False
+
+    def extract_slice_config_from_nsi(self, nsi_data):
+        """Extract slice configuration from NSI data for subscriber creation"""
+        try:
+            slice_configs = []
+            
+            # Extract S-NSSAI from the main NSI data
+            s_nssai = nsi_data.get("S_NSSAI", "")
+            main_sst = None
+            main_sd = None
+            
+            if s_nssai:
+                # Parse S-NSSAI (format: "1274414" -> SST=1, SD=274414)
+                # S-NSSAI format: First digit is SST, remaining digits are SD
+                if len(s_nssai) >= 1:
+                    main_sst = int(s_nssai[0])
+                    if len(s_nssai) > 1:
+                        main_sd = int(s_nssai[1:])  # Convert to int for consistency
+            
+            # Extract QoS parameters from slice attributes
+            qos_params = self._extract_qos_parameters(nsi_data)
+            
+            # Create subscriber slice configurations
+            if main_sst:
+                slice_config = {
+                    "sst": main_sst,
+                    "sd": str(main_sd or "123456"),
+                    "default_indicator": True,
+                    "session": [self._create_session_config(nsi_data, qos_params)]
+                }
+                slice_configs.append(slice_config)
+                logging.info(f"Created slice config: SST={slice_config['sst']}, SD={slice_config['sd']}")
+            
+            # If no slices configured, create default
+            if not slice_configs:
+                slice_configs.append({
+                    "sst": 1,
+                    "sd": "123456",
+                    "default_indicator": True,
+                    "session": [self._create_session_config(nsi_data, qos_params)]
+                })
+            
+            return slice_configs
+            
+        except Exception as e:
+            logging.error(f"Error extracting slice config from NSI data: {str(e)}")
+            # Return default configuration
+            return [{
+                "sst": 1,
+                "sd": "123456", 
+                "default_indicator": True,
+                "session": [self._create_session_config(nsi_data, {})]
+            }]
+
+    def _extract_qos_parameters(self, nsi_data):
+        """Extract QoS parameters from NSI data"""
+        try:
+            slice_attrs = nsi_data.get("description", {}).get("Slice Attributes", {})
+            ssq = slice_attrs.get("SSQ", {})
+            
+            return {
+                "guaranteed_downlink": ssq.get("Guaranteed Flow Bit Rate - Downlink", 1000000000),
+                "guaranteed_uplink": ssq.get("Guaranteed Flow Bit Rate - Uplink", 1000000000),
+                "max_downlink": ssq.get("Max Flow Bit Rate - Downlink", 1000000000),
+                "max_uplink": ssq.get("Max Flow Bit Rate - Uplink", 1000000000),
+                "priority_level": ssq.get("Priority Level", 8),
+                "packet_delay_budget": ssq.get("Packet Delay Budget", 0.00012),
+                "packet_error_rate": ssq.get("Packet Error Rate", 1e-07),
+                "max_packet_loss_rate": ssq.get("Maximum Packet Loss Rate", 100000)
+            }
+        except Exception as e:
+            logging.error(f"Error extracting QoS parameters: {str(e)}")
+            return {}
+
+    def _create_session_config(self, nsi_data, qos_params):
+        """Create session configuration for subscriber slice"""
+        try:
+            # Get supported DNN from AMF config (default to "oranbr")
+            dnn = "oranbr"  # default
+            
+            # Map QoS parameters to 5G QoS indexes
+            qos_index = self._map_qos_to_index(qos_params)
+            priority_level = qos_params.get("priority_level", 8)
+            
+            # Calculate AMBR values from QoS parameters
+            downlink_ambr = qos_params.get("guaranteed_downlink", 1000000000)
+            uplink_ambr = qos_params.get("guaranteed_uplink", 1000000000)
+            
+            session_config = {
+                "name": dnn,
+                "type": 3,  # IPv4
+                "qos": {
+                    "index": qos_index,
+                    "arp": {
+                        "priority_level": priority_level,
+                        "pre_emption_capability": 1,
+                        "pre_emption_vulnerability": 2
+                    }
+                },
+                "ambr": {
+                    "downlink": {"value": int(downlink_ambr), "unit": 0},
+                    "uplink": {"value": int(uplink_ambr), "unit": 0}
+                },
+                "pcc_rule": []
+            }
+            
+            return session_config
+            
+        except Exception as e:
+            logging.error(f"Error creating session config: {str(e)}")
+            # Return default session config
+            return {
+                "name": "oranbr",
+                "type": 3,
+                "qos": {
+                    "index": 9,
+                    "arp": {
+                        "priority_level": 8,
+                        "pre_emption_capability": 1,
+                        "pre_emption_vulnerability": 2
+                    }
+                },
+                "ambr": {
+                    "downlink": {"value": 1000000000, "unit": 0},
+                    "uplink": {"value": 1000000000, "unit": 0}
+                },
+                "pcc_rule": []
+            }
+
+    def _map_qos_to_index(self, qos_params):
+        """Map QoS parameters to 5G QoS Class Identifier (QCI)"""
+        # Simple mapping based on priority level
+        priority = qos_params.get("priority_level", 8)
+        
+        # Map priority to QCI (simplified)
+        if priority <= 2:
+            return 5  # IMS Signalling
+        elif priority <= 4:
+            return 1  # Conversational Voice
+        elif priority <= 6:
+            return 7  # Video (Live Streaming)
+        else:
+            return 9  # Background
 
     def get_subscribers_by_imsi_range(self, start_imsi, end_imsi):
         """Retrieve subscribers within an IMSI range"""
@@ -609,7 +854,6 @@ class NsmfService():
                 logging.error("MongoDB connection not available")
                 return False
             
-            # Delete all documents in the subscribers collection
             result = self.subscribers_collection.delete_many({})
             logging.info(f"Cleared {result.deleted_count} subscribers from MongoDB")
             return True
@@ -617,298 +861,3 @@ class NsmfService():
         except Exception as e:
             logging.error(f"Error clearing subscribers: {str(e)}")
             return False
-
-    def extract_slice_config_from_nsi(self, nsi_data):
-        """Extract slice configuration from NSI data for subscriber creation"""
-        try:
-            # First validate slice consistency
-            is_consistent, inconsistencies = self.validate_slice_consistency(nsi_data)
-            if not is_consistent:
-                logging.warning(f"Proceeding with slice extraction despite inconsistencies: {inconsistencies}")
-            
-            slice_configs = []
-            
-            # Extract S-NSSAI from the main NSI data
-            s_nssai = nsi_data.get("S_NSSAI", "")
-            main_sst = None
-            main_sd = None
-            
-            if s_nssai:
-                # Parse S-NSSAI (format: "1274414" -> SST=1, SD=274414)
-                # S-NSSAI format: First digit is SST, remaining digits are SD
-                if len(s_nssai) >= 1:
-                    main_sst = int(s_nssai[0])
-                    if len(s_nssai) > 1:
-                        main_sd = int(s_nssai[1:])  # Convert to int for consistency
-            
-            # Extract QoS parameters from slice attributes
-            qos_params = self._extract_qos_parameters(nsi_data)
-            
-            # Extract PLMN and slice info from resource description
-            resource_desc = nsi_data.get("description", {}).get("resource_description", {})
-            
-            # Get slice configurations from AMF config
-            amf_slices = self._extract_amf_slice_config(resource_desc)
-            logging.info(f"AMF slices extracted: {amf_slices}")
-            
-            # Get slice configurations from RAN config  
-            ran_slices = self._extract_ran_slice_config(resource_desc)
-            logging.info(f"RAN slices extracted: {ran_slices}")
-            logging.info(f"Main S-NSSAI parsed - SST: {main_sst}, SD: {main_sd}")
-            
-            # Combine all slice configurations
-            all_slices = []
-            
-            # Add AMF slices
-            all_slices.extend(amf_slices)
-            
-            # Add RAN slices if not already present
-            for ran_slice in ran_slices:
-                if not any(s.get("sst") == ran_slice.get("sst") and 
-                          s.get("sd") == ran_slice.get("sd") for s in all_slices):
-                    all_slices.append(ran_slice)
-            
-            # Only use main S-NSSAI if no slices found in network configuration
-            # This ensures actual network config takes priority
-            if not all_slices and main_sst:
-                logging.warning(f"No slices found in AMF/RAN config, falling back to S-NSSAI: SST={main_sst}, SD={main_sd}")
-                all_slices.append({
-                    "sst": main_sst,
-                    "sd": main_sd or "123456"
-                })
-            
-            logging.info(f"Final combined slices: {all_slices}")
-            
-            # Create subscriber slice configurations
-            for slice_info in all_slices:
-                # Keep SD values as strings (no hex conversion needed)
-                sd_value = slice_info.get("sd", "123456")
-                
-                slice_config = {
-                    "sst": slice_info.get("sst", 1),
-                    "sd": str(sd_value),
-                    "default_indicator": True,
-                    "session": [self._create_session_config(nsi_data, qos_params)]
-                }
-                slice_configs.append(slice_config)
-                logging.info(f"Created slice config: SST={slice_config['sst']}, SD={slice_config['sd']}")
-            
-            # If no slices configured, create default
-            if not slice_configs:
-                slice_configs.append({
-                    "sst": 1,
-                    "sd": "123456",
-                    "default_indicator": True,
-                    "session": [self._create_session_config(nsi_data, qos_params)]
-                })
-            
-            return slice_configs
-            
-        except Exception as e:
-            logging.error(f"Error extracting slice config from NSI data: {str(e)}")
-            # Return default configuration
-            return [{
-                "sst": 1,
-                "sd": "123456", 
-                "default_indicator": True,
-                "session": [self._create_session_config(nsi_data, {})]
-            }]
-
-    def _extract_qos_parameters(self, nsi_data):
-        """Extract QoS parameters from NSI data"""
-        try:
-            slice_attrs = nsi_data.get("description", {}).get("Slice Attributes", {})
-            ssq = slice_attrs.get("SSQ", {})
-            
-            return {
-                "guaranteed_downlink": ssq.get("Guaranteed Flow Bit Rate - Downlink", 1000000000),
-                "guaranteed_uplink": ssq.get("Guaranteed Flow Bit Rate - Uplink", 1000000000),
-                "max_downlink": ssq.get("Max Flow Bit Rate - Downlink", 1000000000),
-                "max_uplink": ssq.get("Max Flow Bit Rate - Uplink", 1000000000),
-                "priority_level": ssq.get("Priority Level", 8),
-                "packet_delay_budget": ssq.get("Packet Delay Budget", 0.00012),
-                "packet_error_rate": ssq.get("Packet Error Rate", 1e-07),
-                "max_packet_loss_rate": ssq.get("Maximum Packet Loss Rate", 100000)
-            }
-        except Exception as e:
-            logging.error(f"Error extracting QoS parameters: {str(e)}")
-            return {}
-
-    def _extract_amf_slice_config(self, resource_desc):
-        """Extract slice configuration from AMF resource description"""
-        try:
-            slices = []
-            core_nfs = resource_desc.get("core", {}).get("nfs", [])
-            
-            for nf in core_nfs:
-                if nf.get("name") == "amf":
-                    config = nf.get("config", {})
-                    plmn_support_list = config.get("plmnSupportList", [])
-                    
-                    for plmn_support in plmn_support_list:
-                        snssai_list = plmn_support.get("snssaiList", [])
-                        for snssai in snssai_list:
-                            slices.append({
-                                "sst": snssai.get("sst", 1),
-                                "sd": snssai.get("sd", "123456")
-                            })
-            
-            return slices
-        except Exception as e:
-            logging.error(f"Error extracting AMF slice config: {str(e)}")
-            return []
-
-    def _extract_ran_slice_config(self, resource_desc):
-        """Extract slice configuration from RAN resource description"""
-        try:
-            slices = []
-            ran_nfs = resource_desc.get("ran", {}).get("nfs", [])
-            
-            for nf in ran_nfs:
-                if nf.get("type") == "gnb":
-                    config = nf.get("config", {})
-                    slice_list = config.get("slices", [])
-                    
-                    for slice_info in slice_list:
-                        slices.append({
-                            "sst": slice_info.get("sst", 1),
-                            "sd": slice_info.get("sd", "123456")
-                        })
-            
-            return slices
-        except Exception as e:
-            logging.error(f"Error extracting RAN slice config: {str(e)}")
-            return []
-
-    def _create_session_config(self, nsi_data, qos_params):
-        """Create session configuration for subscriber slice"""
-        try:
-            # Get supported DNN from AMF config
-            dnn = "internet"  # default
-            resource_desc = nsi_data.get("description", {}).get("resource_description", {})
-            core_nfs = resource_desc.get("core", {}).get("nfs", [])
-            
-            for nf in core_nfs:
-                if nf.get("name") == "amf":
-                    config = nf.get("config", {})
-                    support_dnn_list = config.get("supportDnnList", [])
-                    if support_dnn_list:
-                        dnn = support_dnn_list[0]
-                    break
-            
-            # Map QoS parameters to 5G QoS indexes
-            qos_index = self._map_qos_to_index(qos_params)
-            priority_level = qos_params.get("priority_level", 8)
-            
-            # Calculate AMBR values from QoS parameters
-            downlink_ambr = qos_params.get("guaranteed_downlink", 1000000000)
-            uplink_ambr = qos_params.get("guaranteed_uplink", 1000000000)
-            
-            session_config = {
-                "name": dnn,
-                "type": 3,  # IPv4
-                "qos": {
-                    "index": qos_index,
-                    "arp": {
-                        "priority_level": priority_level,
-                        "pre_emption_capability": 1,
-                        "pre_emption_vulnerability": 2
-                    }
-                },
-                "ambr": {
-                    "downlink": {"value": int(downlink_ambr), "unit": 0},
-                    "uplink": {"value": int(uplink_ambr), "unit": 0}
-                },
-                "pcc_rule": []
-            }
-            
-            return session_config
-            
-        except Exception as e:
-            logging.error(f"Error creating session config: {str(e)}")
-            # Return default session config
-            return {
-                "name": "oranbr",
-                "type": 3,
-                "qos": {
-                    "index": 9,
-                    "arp": {
-    
-                        "priority_level": 8,
-                        "pre_emption_capability": 1,
-                        "pre_emption_vulnerability": 2
-                    }
-                },
-                "ambr": {
-                    "downlink": {"value": 1000000000, "unit": 0},
-                    "uplink": {"value": 1000000000, "unit": 0}
-                },
-                "pcc_rule": []
-            }
-
-    def _map_qos_to_index(self, qos_params):
-        """Map QoS parameters to 5G QoS Class Identifier (QCI)"""
-        try:
-            priority = qos_params.get("priority_level", 8)
-            
-            # Map priority levels to QoS indexes based on 5G standards
-            if priority <= 2:
-                return 1  # GBR - Conversational Voice
-            elif priority <= 4:
-                return 5  # GBR - Video
-            elif priority <= 6:
-                return 7  # GBR - Gaming
-            elif priority <= 8:
-                return 9  # Non-GBR - Default
-            else:
-                return 9  # Default
-                
-        except Exception:
-            return 9  # Default QoS index
-    
-    def validate_slice_consistency(self, nsi_data):
-        """Validate consistency between S-NSSAI and network configuration"""
-        try:
-            s_nssai = nsi_data.get("S_NSSAI", "")
-            resource_desc = nsi_data.get("description", {}).get("resource_description", {})
-            
-            # Extract slices from network configuration
-            amf_slices = self._extract_amf_slice_config(resource_desc)
-            ran_slices = self._extract_ran_slice_config(resource_desc)
-            
-            # Parse S-NSSAI
-            main_sst = None
-            main_sd = None
-            if s_nssai and len(s_nssai) >= 1:
-                main_sst = int(s_nssai[0])
-                if len(s_nssai) > 1:
-                    main_sd = int(s_nssai[1:])
-            
-            # Check for inconsistencies
-            inconsistencies = []
-            
-            if main_sst and main_sd:
-                # Check if S-NSSAI matches any AMF slice
-                amf_match = any(s.get("sst") == main_sst and s.get("sd") == main_sd for s in amf_slices)
-                # Check if S-NSSAI matches any RAN slice  
-                ran_match = any(s.get("sst") == main_sst and s.get("sd") == main_sd for s in ran_slices)
-                
-                if not amf_match and not ran_match:
-                    inconsistencies.append(f"S-NSSAI ({main_sst}, {main_sd}) not found in AMF or RAN configuration")
-            
-            # Check if AMF and RAN slices are consistent
-            for amf_slice in amf_slices:
-                ran_match = any(r.get("sst") == amf_slice.get("sst") and r.get("sd") == amf_slice.get("sd") for r in ran_slices)
-                if not ran_match:
-                    inconsistencies.append(f"AMF slice ({amf_slice.get('sst')}, {amf_slice.get('sd')}) not found in RAN configuration")
-            
-            if inconsistencies:
-                logging.warning(f"Slice configuration inconsistencies found: {inconsistencies}")
-                return False, inconsistencies
-            else:
-                logging.info("Slice configuration is consistent")
-                return True, []
-                
-        except Exception as e:
-            logging.error(f"Error validating slice consistency: {str(e)}")
-            return False, [f"Validation error: {str(e)}"]

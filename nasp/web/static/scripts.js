@@ -165,6 +165,48 @@ function createSliceGSMA(form) {
     object.imsi_count = imsiData.count;
     console.log("IMSI Range processed:", imsiData);
   }
+
+  // Authentication Keys Processing
+  if (object.auth_method) {
+    switch (object.auth_method) {
+      case 'shared':
+        if (object.shared_k && !validateHexKey(object.shared_k)) {
+          alert("Invalid K key format. Must be 32 hexadecimal characters.");
+          return;
+        }
+        if (object.shared_opc && !validateHexKey(object.shared_opc)) {
+          alert("Invalid OPc key format. Must be 32 hexadecimal characters.");
+          return;
+        }
+        object.auth_config = {
+          method: 'shared',
+          k: object.shared_k || null,
+          opc: object.shared_opc || null
+        };
+        break;
+      case 'pattern':
+        if (object.base_k && !validateHexKey(object.base_k)) {
+          alert("Invalid base K key format. Must be 32 hexadecimal characters.");
+          return;
+        }
+        if (object.base_opc && !validateHexKey(object.base_opc)) {
+          alert("Invalid base OPc key format. Must be 32 hexadecimal characters.");
+          return;
+        }
+        object.auth_config = {
+          method: 'pattern',
+          pattern: object.key_pattern,
+          base_k: object.base_k || null,
+          base_opc: object.base_opc || null
+        };
+        break;
+      default:
+        object.auth_config = {
+          method: 'auto'
+        };
+    }
+    console.log("Authentication config:", object.auth_config);
+  }
   
   var json = JSON.stringify(object);
   var data = JSON.parse(json)
@@ -172,6 +214,12 @@ function createSliceGSMA(form) {
   console.log(data)
   console.log(JSON.stringify(data))
   request("PUT", "http://127.0.0.1:5000/nasp/nsi", JSON.stringify(data))
+}
+
+// Validation function for hexadecimal keys
+function validateHexKey(key) {
+  if (!key) return false;
+  return /^[0-9A-Fa-f]{32}$/.test(key);
 }
 
 function request(method,url,data) {
