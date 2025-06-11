@@ -1,72 +1,83 @@
-/* Catalog specific styles */
+/* Minimalist Catalog Styles */
 .avatar-circle {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: var(--background-secondary);
+  border: 2px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: bold;
+  color: var(--text-primary);
+  font-weight: 600;
   font-size: 14px;
 }
 
 .table-row {
-  transition: all 0.3s ease;
+  transition: var(--transition);
+}
+
+.table-row:hover {
+  background: var(--background-secondary);
 }
 
 .btn-group .btn {
-  border-radius: 6px !important;
+  border-radius: var(--border-radius);
   margin: 0 2px;
+  border: 1px solid var(--border-color);
 }
 
 .modal-content {
-  border: none;
-  border-radius: 15px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-medium);
 }
 
 .modal-header {
-  border-radius: 15px 15px 0 0;
-  border-bottom: none;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--background-secondary);
 }
 
 .card {
-  transition: all 0.3s ease;
-  border-radius: 10px;
+  transition: var(--transition);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
 }
 
 .card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent-color);
 }
 
 pre code {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 8px;
-  font-family: 'Monaco', 'Consolas', 'Ubuntu Mono', monospace;
-  font-size: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  padding: 16px;
+  border-radius: var(--border-radius);
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 13px;
   line-height: 1.4;
   max-height: 300px;
   overflow-y: auto;
+  color: var(--text-primary);
 }
 
 .input-group .form-control {
-  border-radius: 8px 0 0 8px;
-  border: 2px solid #e5e7eb;
-  transition: all 0.3s ease;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
 }
 
 .input-group .form-control:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.1);
+  outline: none;
 }
 
 .input-group-text {
-  border-radius: 0 8px 8px 0;
-  border: 2px solid #e5e7eb;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  border: 1px solid var(--border-color);
   border-left: none;
-  background: white;
+  background: var(--background-secondary);
+  color: var(--text-secondary);
 }

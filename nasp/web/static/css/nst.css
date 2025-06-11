@@ -1,14 +1,15 @@
-/* NST (Network Slice Template) specific styles */
+/* Minimalist NST (Network Slice Template) Styles */
 .template-config {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 15px;
-  border: 1px solid #e9ecef;
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
+  background: var(--background-secondary);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 13px;
   white-space: pre-wrap;
   max-height: 400px;
   overflow-y: auto;
+  color: var(--text-primary);
 }
 
 .template-modal .modal-dialog {
@@ -16,47 +17,48 @@
 }
 
 .template-preview {
-  background: #1e1e1e;
-  color: #d4d4d4;
-  border-radius: 8px;
+  background: var(--background-primary);
+  color: var(--text-primary);
+  border-radius: var(--border-radius);
   padding: 20px;
-  font-family: 'Courier New', monospace;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
   font-size: 13px;
   line-height: 1.4;
   max-height: 500px;
   overflow-y: auto;
-  border: 1px solid #333;
+  border: 1px solid var(--border-color);
 }
 
 .template-preview .json-key {
-  color: #9cdcfe;
+  color: var(--accent-color);
 }
 
 .template-preview .json-string {
-  color: #ce9178;
+  color: #22c55e;
 }
 
 .template-preview .json-number {
-  color: #b5cea8;
+  color: #f59e0b;
 }
 
 .template-preview .json-boolean {
-  color: #569cd6;
+  color: #8b5cf6;
 }
 
 .template-preview .json-null {
-  color: #808080;
+  color: var(--text-muted);
 }
 
 .template-stats {
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
-  padding: 15px;
-  border-radius: 8px;
+  background: var(--background-secondary);
+  color: var(--text-primary);
+  padding: 16px;
+  border-radius: var(--border-radius);
   margin-bottom: 20px;
+  border: 1px solid var(--border-color);
 }
 
 .template-actions .btn {
-  margin-right: 10px;
-  margin-bottom: 10px;
+  margin-right: 8px;
+  margin-bottom: 8px;
 }

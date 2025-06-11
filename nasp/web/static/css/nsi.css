@@ -1,10 +1,9 @@
-/* NSI (Network Slice Instances) specific styles */
+/* Minimalist NSI (Network Slice Instances) Styles */
 .slice-indicator {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  box-shadow: 0 0 8px rgba(79, 70, 229, 0.4);
+  background: var(--accent-color);
 }
 
 .spin-animation {
@@ -17,18 +16,18 @@
 }
 
 .table-row:hover .slice-indicator {
-  box-shadow: 0 0 12px rgba(79, 70, 229, 0.6);
-  transform: scale(1.2);
+  background: var(--text-primary);
 }
 
 .btn-group .dropdown-menu {
-  border: none;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-medium);
+  border-radius: var(--border-radius);
 }
 
 .dropdown-item:hover {
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(16, 185, 129, 0.1));
+  background: var(--background-secondary);
+  color: var(--text-primary);
 }
 
 /* Loading spinner for NSI operations */
@@ -36,8 +35,8 @@
     display: inline-block;
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 2px solid var(--border-color);
     border-radius: 50%;
-    border-top-color: white;
-    animation: spin 1s ease-in-out infinite;
+    border-top-color: var(--accent-color);
+    animation: spin 1s linear infinite;
 }

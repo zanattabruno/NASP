@@ -1,86 +1,89 @@
-/* NSST (Network Subnet Slice Template) specific styles */
+/* Minimalist NSST (Network Subnet Slice Template) Styles */
 .nsst-table {
-  background: white;
+  background: var(--background-primary);
   border-radius: var(--border-radius);
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-color);
 }
 
 .nsst-domain-badge {
-  padding: 4px 12px;
-  border-radius: 15px;
+  padding: 4px 8px;
+  border-radius: var(--border-radius-small);
   font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-weight: 500;
+  border: 1px solid;
 }
 
 .nsst-domain-ran {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  color: white;
+  background: #f0f4ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
 }
 
 .nsst-domain-core {
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
-  color: white;
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
 }
 
 .nsst-domain-tn {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
+  background: #fffbeb;
+  color: #d97706;
+  border-color: #fed7aa;
 }
 
 .nsst-form-section {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 8px;
+  background: var(--background-primary);
+  border-radius: var(--border-radius);
   padding: 20px;
   margin-bottom: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
 }
 
 .nsst-form-section h6 {
-  color: var(--primary-color);
+  color: var(--text-primary);
   font-weight: 600;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--primary-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .file-upload-area {
-  border: 2px dashed #d1d5db;
-  border-radius: 8px;
-  padding: 30px;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 32px;
   text-align: center;
   transition: var(--transition);
-  background: #f9fafb;
+  background: var(--background-secondary);
+  color: var(--text-secondary);
 }
 
 .file-upload-area:hover {
-  border-color: var(--primary-color);
-  background: rgba(79, 70, 229, 0.05);
+  border-color: var(--accent-color);
+  background: var(--background-primary);
+  color: var(--text-primary);
 }
 
 .file-upload-area.dragover {
-  border-color: var(--secondary-color);
-  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--accent-color);
+  background: var(--background-primary);
+  color: var(--accent-color);
 }
 
 .template-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .template-card {
-  background: white;
-  border-radius: 12px;
+  background: var(--background-primary);
+  border-radius: var(--border-radius);
   padding: 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-color);
   transition: var(--transition);
 }
 
 .template-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent-color);
 }
