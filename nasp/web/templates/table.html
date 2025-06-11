@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% set active = "Table" %}
+{% block page_title %}Use Cases Table{% endblock %}
+{% block content %}
+<div class="body">
+    <div class="body-main">
+        <div class="body-main-title">Use Cases Table</div>
+        <div class="body-main-table">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th><i class="bi bi-tag me-1"></i>Name</th>
+                            <th><i class="bi bi-file-text me-1"></i>Description</th>
+                            <th><i class="bi bi-activity me-1"></i>Status</th>
+                            <th><i class="bi bi-share me-1"></i>Shared</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for case in use_cases %}
+                        <tr class="table-row">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-2">{{ case.name[0] }}</div>
+                                    <strong>{{ case.name }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-muted">{{ case.description }}</span>
+                            </td>
+                            <td>
+                                {% if case.status == 'Ready' %}
+                                    <span class="status-badge status-active">
+                                        <i class="bi bi-check-circle me-1"></i>{{ case.status }}
+                                    </span>
+                                {% else %}
+                                    <span class="status-badge status-pending">
+                                        <i class="bi bi-clock me-1"></i>{{ case.status }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if case.is_shared %}
+                                    <i class="bi bi-share-fill text-success fs-5" title="Shared"></i>
+                                {% else %}
+                                    <i class="bi bi-lock-fill text-muted fs-5" title="Private"></i>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional CSS for styling -->
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.table-row {
+    transition: all 0.3s ease;
+}
+
+.table-row:hover {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), rgba(16, 185, 129, 0.05));
+    transform: translateX(5px);
+}
+</style>
+{% endblock %}

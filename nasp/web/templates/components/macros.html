@@ -1,0 +1,167 @@
+<!-- Reusable UI Components and Macros -->
+
+<!-- Navigation Tab Macro -->
+{% macro nav_tab(title, icon, url, active=false, option_class="body-title-opt1") %}
+<div class="{{ option_class }} {{ 'active' if active else '' }}" data-navigate="{{ url }}">
+    {% if icon %}<i class="{{ icon }} me-2"></i>{% endif %}{{ title }}
+</div>
+{% endmacro %}
+
+<!-- Status Badge Macro -->
+{% macro status_badge(status, text=None) %}
+{% set display_text = text or status %}
+{% if status == 'active' %}
+    <span class="status-badge status-active">
+        <i class="bi bi-check-circle me-1"></i>{{ display_text }}
+    </span>
+{% elif status == 'inactive' %}
+    <span class="status-badge status-inactive">
+        <i class="bi bi-x-circle me-1"></i>{{ display_text }}
+    </span>
+{% elif status == 'deploying' or status == 'pending' %}
+    <span class="status-badge status-pending">
+        <i class="bi bi-gear me-1"></i>{{ display_text }}
+    </span>
+{% else %}
+    <span class="status-badge status-pending">
+        <i class="bi bi-clock me-1"></i>{{ display_text }}
+    </span>
+{% endif %}
+{% endmacro %}
+
+<!-- Action Button Macro -->
+{% macro action_button(action, variant="primary", size="sm", icon=None, text="", onclick="", data_attrs={}) %}
+<button type="button" class="btn btn-{{ variant }}{% if variant == 'modern' %}-modern{% endif %} btn-{{ size }}" 
+        {% if onclick %}onclick="{{ onclick }}"{% endif %}
+        {% for key, value in data_attrs.items() %}data-{{ key }}="{{ value }}"{% endfor %}>
+    {% if icon %}<i class="{{ icon }} me-1"></i>{% endif %}{{ text }}
+</button>
+{% endmacro %}
+
+<!-- Card Component Macro -->
+{% macro stats_card(title, value, icon, color="primary", description="") %}
+<div class="col-md-3">
+    <div class="card-modern">
+        <div class="card-body-modern text-center">
+            <div class="d-flex align-items-center justify-content-center mb-2">
+                <div class="rounded-circle bg-{{ color }} bg-opacity-10 p-3">
+                    <i class="{{ icon }} text-{{ color }} fs-4"></i>
+                </div>
+            </div>
+            <h5 class="card-title mb-1">{{ value }}</h5>
+            <p class="card-text text-muted">{{ title }}</p>
+            {% if description %}
+            <small class="text-muted">{{ description }}</small>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+<!-- Modal Component Macro -->
+{% macro modal(id, title, size="lg", body_content="", footer_content="") %}
+<div class="modal fade" id="{{ id }}" tabindex="-1" role="dialog" aria-labelledby="{{ id }}Label" aria-hidden="true">
+    <div class="modal-dialog modal-{{ size }}" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="{{ id }}Label">{{ title }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {{ body_content | safe }}
+            </div>
+            {% if footer_content %}
+            <div class="modal-footer">
+                {{ footer_content | safe }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+<!-- Form Field Macro -->
+{% macro form_field(type, name, label, value="", placeholder="", required=false, help_text="", options=[], cols="col-sm-10") %}
+<div class="form-group row">
+    <label for="{{ name }}" class="col-sm-2 p-3 col-form-label">{{ label }}</label>
+    <div class="{{ cols }}">
+        {% if type == "select" %}
+            <select class="form-control" id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %}>
+                {% for option in options %}
+                    <option value="{{ option.value if option.value is defined else option }}" 
+                            {% if option.selected is defined and option.selected %}selected{% endif %}>
+                        {{ option.text if option.text is defined else option }}
+                    </option>
+                {% endfor %}
+            </select>
+        {% elif type == "textarea" %}
+            <textarea class="form-control" id="{{ name }}" name="{{ name }}" 
+                      {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+                      {% if required %}required{% endif %}>{{ value }}</textarea>
+        {% elif type == "checkbox" %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="{{ name }}" name="{{ name }}" 
+                       {% if value %}checked{% endif %}>
+                <label class="form-check-label" for="{{ name }}">
+                    {{ label }}
+                </label>
+            </div>
+        {% elif type == "radio" %}
+            {% for option in options %}
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="{{ name }}" 
+                       id="{{ name }}_{{ loop.index }}" value="{{ option.value if option.value is defined else option }}"
+                       {% if option.checked is defined and option.checked %}checked{% endif %}>
+                <label class="form-check-label" for="{{ name }}_{{ loop.index }}">
+                    {{ option.text if option.text is defined else option }}
+                </label>
+            </div>
+            {% endfor %}
+        {% else %}
+            <input type="{{ type }}" class="form-control" id="{{ name }}" name="{{ name }}" 
+                   {% if value %}value="{{ value }}"{% endif %}
+                   {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+                   {% if required %}required{% endif %}>
+        {% endif %}
+        {% if help_text %}
+            <small class="form-text text-muted">{{ help_text }}</small>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+<!-- Loading Spinner Macro -->
+{% macro loading_spinner(size="sm", inline=true) %}
+<span class="loading-spinner{% if inline %} d-inline-block{% endif %}" 
+      style="width: {{ '16px' if size == 'sm' else '24px' }}; height: {{ '16px' if size == 'sm' else '24px' }};"></span>
+{% endmacro %}
+
+<!-- Avatar Circle Macro -->
+{% macro avatar_circle(text, size="sm") %}
+<div class="avatar-circle{% if size == 'lg' %} avatar-circle-lg{% endif %}">{{ text }}</div>
+{% endmacro %}
+
+<!-- Dropdown Actions Macro -->
+{% macro dropdown_actions(actions, button_text="Actions", button_class="btn-outline-secondary") %}
+<div class="dropdown">
+    <button class="btn {{ button_class }} btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <i class="bi bi-three-dots"></i>{% if button_text %} {{ button_text }}{% endif %}
+    </button>
+    <ul class="dropdown-menu">
+        {% for action in actions %}
+            {% if action.divider %}
+                <li><hr class="dropdown-divider"></li>
+            {% else %}
+                <li>
+                    <a class="dropdown-item{% if action.danger %} text-danger{% endif %}" 
+                       href="{{ action.url or '#' }}"
+                       {% if action.onclick %}onclick="{{ action.onclick }}"{% endif %}>
+                        {% if action.icon %}<i class="{{ action.icon }} me-2"></i>{% endif %}
+                        {{ action.text }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</div>
+{% endmacro %}

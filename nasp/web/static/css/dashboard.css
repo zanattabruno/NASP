@@ -1,0 +1,93 @@
+/* Dashboard specific styles */
+.topology-container {
+  min-height: 650px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.topology-content {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 12px;
+  background: #f8f9fa;
+}
+
+.topology-legend .card {
+  border-radius: 8px;
+  font-size: 0.75rem;
+  max-width: 150px;
+}
+
+.topology-controls .btn-group-vertical .btn {
+  border-radius: 6px;
+  margin-bottom: 2px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.disconnected {
+  background: #ef4444;
+}
+
+.status-healthy {
+  background-color: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+.status-warning {
+  background-color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.progress {
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar {
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+.border-end:last-child {
+  border-right: none !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.card-header-modern {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: white;
+  padding: 15px 20px;
+  font-weight: 600;
+  border-radius: 12px 12px 0 0;
+}
+
+.topology-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}

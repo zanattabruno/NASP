@@ -1,15 +1,269 @@
 {% extends "base.html" %}
 {% set active = "Dashboard" %}
+{% block page_title %}Network Dashboard - Topology{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
+
 {% block content %}
+<body class="dashboard-page">
 <div class="body">
+    <!-- Enhanced Dashboard Navigation -->
     <div class="body-title">
-        <div class="body-title-opt1 active" onclick="window.location='/dashboard-topology';">TOPOLOGY</div>
-        <div class="body-title-opt1 " onclick="window.location='/dashboard-metrics';">METRICS</div>
-        <div class="body-title-opt2 " onclick="window.location='/dashboard-tracing';">TRACING</div>
-        <div class="body-title-opt2 " onclick="window.location='/dashboard-logs';">LOGS</div>
+        <div class="body-title-opt1 active" onclick="navigateWithLoader('/dashboard-topology?role={{ role }}');">
+            <i class="bi bi-diagram-3 me-2"></i>TOPOLOGY
+        </div>
+        <div class="body-title-opt1" onclick="navigateWithLoader('/dashboard-metrics?role={{ role }}');">
+            <i class="bi bi-graph-up me-2"></i>METRICS
+        </div>
+        <div class="body-title-opt2" onclick="navigateWithLoader('/dashboard-tracing?role={{ role }}');">
+            <i class="bi bi-bezier2 me-2"></i>TRACING
+        </div>
+        <div class="body-title-opt2" onclick="navigateWithLoader('/dashboard-logs?role={{ role }}');">
+            <i class="bi bi-file-text me-2"></i>LOGS
+        </div>
     </div>
+    
+    <!-- Enhanced Main Content -->
     <div class="body-main">
-        <a href="http://67.205.130.238:8181/onos/ui/#/topo2" target="_blank" rel="noopener noreferrer" ><img src="../onos-topology.png" width=100% height=100%></a>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="body-main-title">
+                <i class="bi bi-diagram-3 me-3 text-primary"></i>Network Topology Dashboard
+            </div>
+            <div class="d-flex gap-3 align-items-center">
+                <!-- Topology Controls -->
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshTopology()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleFullscreen()">
+                        <i class="bi bi-fullscreen me-1"></i>Fullscreen
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="exportTopology()">
+                        <i class="bi bi-download me-1"></i>Export
+                    </button>
+                </div>
+                
+                <!-- Status Indicator -->
+                <div class="d-flex align-items-center">
+                    <div class="status-indicator me-2" id="topologyStatus"></div>
+                    <span class="small text-muted">Live Status</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Status Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card-modern">
+                    <div class="card-body-modern text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                                <i class="bi bi-hdd-network text-primary fs-4"></i>
+                            </div>
+                        </div>
+                        <h5 class="card-title mb-1" id="totalNodes">Loading...</h5>
+                        <p class="card-text text-muted">Total Nodes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card-modern">
+                    <div class="card-body-modern text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3">
+                                <i class="bi bi-check-circle text-success fs-4"></i>
+                            </div>
+                        </div>
+                        <h5 class="card-title mb-1" id="activeNodes">Loading...</h5>
+                        <p class="card-text text-muted">Active Nodes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card-modern">
+                    <div class="card-body-modern text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3">
+                                <i class="bi bi-arrow-left-right text-info fs-4"></i>
+                            </div>
+                        </div>
+                        <h5 class="card-title mb-1" id="totalLinks">Loading...</h5>
+                        <p class="card-text text-muted">Active Links</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card-modern">
+                    <div class="card-body-modern text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3">
+                                <i class="bi bi-speedometer2 text-warning fs-4"></i>
+                            </div>
+                        </div>
+                        <h5 class="card-title mb-1" id="networkLatency">Loading...</h5>
+                        <p class="card-text text-muted">Avg Latency</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Topology Viewer -->
+        <div class="topology-container card-modern">
+            <div class="topology-header p-3 border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold">
+                        <i class="bi bi-diagram-3 me-2"></i>Network Topology View
+                    </h6>
+                    <div class="d-flex gap-2">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                            <label class="form-check-label small" for="autoRefresh">Auto Refresh</label>
+                        </div>
+                        <span class="badge bg-success small" id="lastUpdated">Live</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="topology-content position-relative" id="topologyFrame">
+                <div class="topology-loading text-center py-5" id="topologyLoading">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading topology...</span>
+                    </div>
+                    <p class="text-muted">Loading network topology...</p>
+                </div>
+                
+                <!-- Enhanced topology iframe with overlay controls -->
+                <iframe 
+                    src="http://67.205.130.238:8181/onos/ui/#/topo2" 
+                    width="100%" 
+                    height="600" 
+                    frameborder="0"
+                    id="topologyIframe"
+                    style="display: none; border-radius: 0 0 12px 12px;"
+                    onload="handleTopologyLoad()">
+                </iframe>
+                
+                <!-- Topology Legend -->
+                <div class="topology-legend position-absolute bottom-0 start-0 m-3">
+                    <div class="card bg-dark bg-opacity-75 text-white" style="font-size: 0.8rem;">
+                        <div class="card-body p-2">
+                            <h6 class="card-title mb-2 small">Legend</h6>
+                            <div class="d-flex flex-column gap-1">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-success me-2" style="width: 8px; height: 8px;"></div>
+                                    <span class="small">Active Node</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-warning me-2" style="width: 8px; height: 8px;"></div>
+                                    <span class="small">Warning</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-danger me-2" style="width: 8px; height: 8px;"></div>
+                                    <span class="small">Critical</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Topology Controls Overlay -->
+                <div class="topology-controls position-absolute top-0 end-0 m-3">
+                    <div class="btn-group-vertical">
+                        <button class="btn btn-light btn-sm" onclick="zoomIn()" title="Zoom In">
+                            <i class="bi bi-zoom-in"></i>
+                        </button>
+                        <button class="btn btn-light btn-sm" onclick="zoomOut()" title="Zoom Out">
+                            <i class="bi bi-zoom-out"></i>
+                        </button>
+                        <button class="btn btn-light btn-sm" onclick="centerView()" title="Center View">
+                            <i class="bi bi-arrows-move"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Health Summary -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card-modern">
+                    <div class="card-header-modern">
+                        <i class="bi bi-activity me-2"></i>Network Health
+                    </div>
+                    <div class="card-body-modern">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Overall Health</span>
+                            <span class="badge bg-success">Excellent</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 95%"></div>
+                        </div>
+                        
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="text-success mb-0">98.5%</h6>
+                                    <small class="text-muted">Uptime</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="text-warning mb-0">2</h6>
+                                    <small class="text-muted">Warnings</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <h6 class="text-danger mb-0">0</h6>
+                                <small class="text-muted">Critical</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card-modern">
+                    <div class="card-header-modern">
+                        <i class="bi bi-graph-up me-2"></i>Traffic Overview
+                    </div>
+                    <div class="card-body-modern">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Current Load</span>
+                            <span class="text-primary fw-bold">67%</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar" role="progressbar" style="width: 67%"></div>
+                        </div>
+                        
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="text-primary mb-0">1.2GB/s</h6>
+                                    <small class="text-muted">Throughput</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="text-info mb-0">45ms</h6>
+                                    <small class="text-muted">Latency</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <h6 class="text-success mb-0">99.9%</h6>
+                                <small class="text-muted">Success Rate</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-</div>
+</body>
 {% endblock %}

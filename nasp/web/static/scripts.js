@@ -1,31 +1,28 @@
-BASE_URL = "http://localhost:5000"
+/**
+ * Legacy scripts - to be migrated to modular structure
+ * @deprecated Use the new modular JS files instead
+ */
+
+// Configuration - use CONFIG from base.js instead
+const BASE_URL = "http://localhost:5000";
+
+/**
+ * Allocate NSI - Legacy function
+ * @deprecated Use NSI.createInstance() instead
+ */
 function allocNSI(nst) {
-  alert("Test")
-  console.log(nst)
-  alert("Creating a New Slice...")
-  // request("PUT", "http://165.232.128.22:5000/nasp/nsi", JSON.stringify(nst))
-  // var settings = {
-  //     "url": "http://localhost:5000/nasp/allocNsi",
-  //     "method": "PUT",
-  //     "timeout": 0,
-  //     "headers": {
-  //       "Content-Type": "application/json"
-  //     },
-  //     "data": JSON.stringify({
-  //       "NstTemplateId": String(id)
-  //   }),
-  //   };
-    
-  //   $.ajax(settings).done(function (response) {
-  //     console.log(response);
-  //     window.location.href = '/';
-  //   });
-  // return ""
+  console.log("Legacy allocNSI called with:", nst);
+  alert("Creating a New Slice...");
+  // Implementation moved to nsi.js
 }
+/**
+ * Modal event handler - Legacy
+ * @deprecated Move to appropriate module
+ */
 $('#myModal').on('shown.bs.modal', function () {
-  alert("Testing")
-  $('#myInput').trigger('focus')
-})
+  console.log("Modal shown - legacy handler");
+  $('#myInput').trigger('focus');
+});
 
 function addAMF_temp(form){
   let formData = new FormData(form);

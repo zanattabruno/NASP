@@ -1,0 +1,62 @@
+/* NST (Network Slice Template) specific styles */
+.template-config {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid #e9ecef;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.template-modal .modal-dialog {
+  max-width: 90vw;
+}
+
+.template-preview {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  border-radius: 8px;
+  padding: 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid #333;
+}
+
+.template-preview .json-key {
+  color: #9cdcfe;
+}
+
+.template-preview .json-string {
+  color: #ce9178;
+}
+
+.template-preview .json-number {
+  color: #b5cea8;
+}
+
+.template-preview .json-boolean {
+  color: #569cd6;
+}
+
+.template-preview .json-null {
+  color: #808080;
+}
+
+.template-stats {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.template-actions .btn {
+  margin-right: 10px;
+  margin-bottom: 10px;
+}

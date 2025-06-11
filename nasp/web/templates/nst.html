@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 {% set active = "Templates" %}
+{% block page_title %}Network Slice Templates{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nst.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/nst.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="body">
     <div class="body-title">
@@ -46,11 +56,8 @@ aria-hidden="true">
                 <div class="row">
                     <div class="col-12">
                         <h5 class="modal-title" id="exampleModalLabel{{case.id}}">NST</h5>
-                        <pre id="teste{{case.id}}">
-                            <script>
-                                var tt = '{{ case.NST|tojson }}'
-                                document.querySelector("#teste{{case.id}}").innerHTML = JSON.stringify(JSON.parse(tt), null, 2)
-                            </script>
+                        <pre id="teste{{case.id}}" class="template-config" data-template-data="{{ case.NST|tojson }}">
+                            <!-- Template data will be formatted by JavaScript -->
                         </pre>
         
                     </div>
@@ -72,18 +79,18 @@ aria-hidden="true">
             </table>
             <!-- <button type="button" class="btn btn-primary btn-lg" onclick="allocNSSI( {{ use_cases }} )">Deploy Slice</button> -->
             <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal"
-                data-bs-target="#exampleModal">Add Slice Template</button>
+                data-bs-target="#nstModal">Add Slice Template</button>
         </div>
     </div>
 </div>
 
 <!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+<div class="modal fade" id="nstModal" tabindex="-1" role="dialog" aria-labelledby="nstModalLabel"
 aria-hidden="true">
 <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Add Network Slice Template</h5>
+            <h5 class="modal-title" id="nstModalLabel">Add Network Slice Template</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
             </button>
@@ -91,21 +98,21 @@ aria-hidden="true">
         <div class="modal-body">
             <form id="slice-template-form">
                 <div class="form-group row">
-                    <label for="inputEmail3" class="col-sm-2 p-3 col-form-label">Name</label>
+                    <label for="inputTemplateName" class="col-sm-2 p-3 col-form-label">Name</label>
                     <div class="col-sm-10">
-                        <input type="email" class="form-control" id="inputEmail3" placeholder="Name" name="name">
+                        <input type="text" class="form-control" id="inputTemplateName" placeholder="Name" name="name">
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="inputEmail3" class="col-sm-2 p-3 col-form-label">Description</label>
+                    <label for="inputTemplateDescription" class="col-sm-2 p-3 col-form-label">Description</label>
                     <div class="col-sm-10">
-                        <input type="email" class="form-control" id="inputEmail3" placeholder="Description" name="description">
+                        <input type="text" class="form-control" id="inputTemplateDescription" placeholder="Description" name="description">
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="inputEmail3" class="col-sm-2 p-3 col-form-label">RAN Template</label>
+                    <label for="inputRanTemplate" class="col-sm-2 p-3 col-form-label">RAN Template</label>
                     <div class="col-sm-10">
-                        <select class="form-control" name="ran_template">
+                        <select class="form-control" id="inputRanTemplate" name="ran_template">
                             {% for nsst_ran in nsst_ran_list %}
                             <option>{{ nsst_ran.name }}</option>
                             {% endfor %}
@@ -113,17 +120,17 @@ aria-hidden="true">
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="inputEmail3" class="col-sm-2 p-3 col-form-label">TN Template</label>
+                    <label for="inputTnTemplateNst" class="col-sm-2 p-3 col-form-label">TN Template</label>
                     <div class="col-sm-10">
-                        <select class="form-control" name="core_template">
+                        <select class="form-control" id="inputTnTemplateNst" name="tn_template">
                         </select>
                     </div>
                 </div>
 
                 <div class="form-group row">
-                    <label for="inputEmail3" class="col-sm-2 p-3 col-form-label">Core Template</label>
+                    <label for="inputCoreTemplateNst" class="col-sm-2 p-3 col-form-label">Core Template</label>
                     <div class="col-sm-10">
-                        <select class="form-control" name="core_template">
+                        <select class="form-control" id="inputCoreTemplateNst" name="core_template">
                             {% for nsst_core in nsst_core_list %}
                             <option>{{ nsst_core.name }}</option>
                             {% endfor %}
@@ -134,8 +141,8 @@ aria-hidden="true">
                     <div class="col-sm-2">Shared?</div>
                     <div class="col-sm-10">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="gridCheck1" name="is_shared">
-                            <label class="form-check-label" for="gridCheck1">
+                            <input class="form-check-input" type="checkbox" id="gridCheckNst" name="is_shared">
+                            <label class="form-check-label" for="gridCheckNst">
                                 True
                             </label>
                         </div>

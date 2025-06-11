@@ -1,87 +1,363 @@
 {% extends "base.html" %}
 {% set active = "Catalog" %}
+{% block page_title %}Slice Catalog{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/catalog.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/catalog.js') }}"></script>
+{% endblock %}
+
 {% block content %}
+<body class="catalog-page">
 <div class="body">
+    <!-- Enhanced Navigation Tabs -->
     <div class="body-title">
-        <div class="body-title-opt1 active" onclick="window.location='/';">E2E NETWORK SLICES</div>
-        <div class="body-title-opt2" onclick="window.location='/nsst';">NETWORK SUBNETS SLICES</div>
+        <div class="body-title-opt1 active" onclick="navigateWithLoader('/?role={{ role }}');">
+            <i class="bi bi-diagram-3 me-2"></i>E2E NETWORK SLICES
+        </div>
+        <div class="body-title-opt2" onclick="navigateWithLoader('/nsst?role={{ role }}');">
+            <i class="bi bi-hdd-network me-2"></i>NETWORK SUBNETS SLICES
+        </div>
     </div>
+    
+    <!-- Enhanced Main Content -->
     <div class="body-main">
-        <div class="body-main-title">E2E Network Slice</div>
-        <div class="body-main-table">
-            <table id="data" class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Status</th>
-                        <th>Sharing</th>
-                        <th>Deploy</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for case in use_cases %}
-                    <tr data-bs-toggle="modal"
-                    data-bs-target="#sec-modal{{case.id}}" data-target='#edit{{ case.id }}'>
-                        <td>{{ case.id }}</td>
-                        <td>{{ case.name }}</td>
-                        <td>{{ case.description }}</td>
-                        <td>{{ case.status }}</td>
-                        <td >{{ case.is_shared }}</td>
-                        <td><button type="button" class="btn btn-primary">Deploy</button></td>
-                    </tr>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="body-main-title">
+                <i class="bi bi-diagram-3 me-3 text-primary"></i>E2E Network Slice Catalog
+            </div>
+            <div class="d-flex gap-3">
+                <!-- Search Bar -->
+                <div class="input-group" style="width: 300px;">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search slices...">
+                </div>
+                <!-- Filter Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-funnel me-2"></i>Filter
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" data-filter="all">All Status</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="active">Active</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="inactive">Inactive</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="pending">Pending</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
-                    <!-- SEC Modal -->
-                    <div class="modal fade" id="sec-modal{{case.id}}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
-                    aria-hidden="true">
-                    <div class="modal-dialog modal-xl" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="exampleModalLabel">Add Sec Network Slice Template</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card-modern">
+                    <div class="card-body-modern text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                                <i class="bi bi-diagram-3 text-primary fs-4"></i>
                             </div>
-                            <div class="modal-body">
-                                <div class="container-fluid">
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <h5 class="modal-title" id="exampleModalLabel{{case.id}}">NST</h5>
-                                            <pre id="teste{{case.id}}">
-                                                <script>
-                                                    var tt = '{{ case.NST|tojson }}'
-                                                    document.querySelector("#teste{{case.id}}").innerHTML = JSON.stringify(JSON.parse(tt), null, 2)
-                                                </script>
-                                            </pre>
-                            
-                                        </div>
+                        </div>
+                        <h5 class="card-title mb-1">{{ use_cases|length }}</h5>
+                        <p class="card-text text-muted">Total Slices</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card-modern">
+                    <div class="card-body-modern text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3">
+                                <i class="bi bi-check-circle text-success fs-4"></i>
+                            </div>
+                        </div>
+                        <h5 class="card-title mb-1" id="activeCount">0</h5>
+                        <p class="card-text text-muted">Active</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card-modern">
+                    <div class="card-body-modern text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3">
+                                <i class="bi bi-clock text-warning fs-4"></i>
+                            </div>
+                        </div>
+                        <h5 class="card-title mb-1" id="pendingCount">0</h5>
+                        <p class="card-text text-muted">Pending</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card-modern">
+                    <div class="card-body-modern text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3">
+                                <i class="bi bi-share text-info fs-4"></i>
+                            </div>
+                        </div>
+                        <h5 class="card-title mb-1" id="sharedCount">0</h5>
+                        <p class="card-text text-muted">Shared</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <!-- Enhanced Table -->
+        <div class="body-main-table">
+            <div class="table-responsive">
+                <table id="data" class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th><i class="bi bi-hash me-1"></i>ID</th>
+                            <th><i class="bi bi-tag me-1"></i>Name</th>
+                            <th><i class="bi bi-file-text me-1"></i>Description</th>
+                            <th><i class="bi bi-activity me-1"></i>Status</th>
+                            <th><i class="bi bi-share me-1"></i>Sharing</th>
+                            <th><i class="bi bi-gear me-1"></i>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for case in use_cases %}
+                        <tr data-bs-toggle="modal" data-bs-target="#sec-modal{{case.id}}" data-target='#edit{{ case.id }}' class="table-row">
+                            <td>
+                                <span class="badge bg-light text-dark">{{ case.id }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-2">{{ case.name[0] }}</div>
+                                    <strong>{{ case.name }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-muted">
+                                    {% if case.description %}
+                                        {% if case.description is string %}
+                                            {{ case.description[:50] }}{% if case.description|length > 50 %}...{% endif %}
+                                        {% else %}
+                                            Custom slice template
+                                        {% endif %}
+                                    {% else %}
+                                        No description
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                {% if case.status == 'active' %}
+                                    <span class="status-badge status-active">
+                                        <i class="bi bi-check-circle me-1"></i>{{ case.status }}
+                                    </span>
+                                {% elif case.status == 'inactive' %}
+                                    <span class="status-badge status-inactive">
+                                        <i class="bi bi-x-circle me-1"></i>{{ case.status }}
+                                    </span>
+                                {% else %}
+                                    <span class="status-badge status-pending">
+                                        <i class="bi bi-clock me-1"></i>{{ case.status }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if case.is_shared %}
+                                    <i class="bi bi-share-fill text-success fs-5" title="Shared"></i>
+                                {% else %}
+                                    <i class="bi bi-lock-fill text-muted fs-5" title="Private"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-modern btn-sm" data-bs-toggle="modal" data-bs-target="#sec-modal{{case.id}}">
+                                        <i class="bi bi-eye me-1"></i>View
+                                    </button>
+                                    <button type="button" class="btn btn-success-modern btn-sm" data-bs-toggle="modal" data-bs-target="#deployModal{{case.id}}">
+                                        <i class="bi bi-play-circle me-1"></i>Deploy
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Enhanced Modal -->
+                        <div class="modal fade" id="sec-modal{{case.id}}" tabindex="-1" role="dialog" aria-labelledby="modal-title-{{case.id}}" aria-hidden="true">
+                            <div class="modal-dialog modal-xl" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title" id="modal-title-{{case.id}}">
+                                            <i class="bi bi-diagram-3 me-2"></i>Network Slice Template - {{ case.name }}
+                                        </h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="container-fluid">
+                                            <!-- Slice Info Cards -->
+                                            <div class="row mb-4">
+                                                <div class="col-md-4">
+                                                    <div class="card border-primary">
+                                                        <div class="card-body text-center">
+                                                            <i class="bi bi-info-circle text-primary fs-3 mb-2"></i>
+                                                            <h6 class="card-title">Slice ID</h6>
+                                                            <p class="card-text fw-bold">{{ case.id }}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="card border-success">
+                                                        <div class="card-body text-center">
+                                                            <i class="bi bi-activity text-success fs-3 mb-2"></i>
+                                                            <h6 class="card-title">Status</h6>
+                                                            <p class="card-text fw-bold">{{ case.status }}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="card border-info">
+                                                        <div class="card-body text-center">
+                                                            <i class="bi bi-share text-info fs-3 mb-2"></i>
+                                                            <h6 class="card-title">Sharing</h6>
+                                                            <p class="card-text fw-bold">{{ case.is_shared }}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Description -->
+                                            <div class="mb-4">
+                                                <h6><i class="bi bi-file-text me-2"></i>Description</h6>
+                                                <p class="text-muted">{{ case.description }}</p>
+                                            </div>
+                                            
+                                            <!-- NST Configuration -->
+                                            <div class="row">
+                                                <div class="col-12">
+                                                    <h6><i class="bi bi-code-slash me-2"></i>Network Slice Template (NST)</h6>
+                                                    <div class="bg-light rounded p-3">
+                                                        <pre id="nst-config-{{case.id}}" class="mb-0 small"><code>{{ case.NST|tojson(indent=2) }}</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            <i class="bi bi-x-circle me-1"></i>Close
+                                        </button>
+                                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#deployModal{{case.id}}" data-bs-dismiss="modal">
+                                            <i class="bi bi-play-circle me-1"></i>Deploy Slice
+                                        </button>
                                     </div>
                                 </div>
-                                
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <!-- Deployment Modals for each slice template -->
+                {% for case in use_cases %}
+                <!-- Deployment Modal for {{case.name}} -->
+                <div class="modal fade" id="deployModal{{case.id}}" tabindex="-1" role="dialog" aria-labelledby="deployModalLabel{{case.id}}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title" id="deployModalLabel{{case.id}}">
+                                    <i class="bi bi-play-circle me-2"></i>Deploy Network Slice - {{ case.name }}
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="deploy-form-{{case.id}}">
+                                    <!-- Hidden field to store the slice template data -->
+                                    <input type="hidden" name="template_id" value="{{case.id}}">
+                                    <input type="hidden" name="template_name" value="{{case.name}}">
+                                    <input type="hidden" name="template_data" value="{{case.NST|tojson}}">
+                                    
+                                    <div class="form-group row">
+                                        <label for="deployName{{case.id}}" class="col-sm-3 col-form-label">Slice Name</label>
+                                        <div class="col-sm-9">
+                                            <input type="text" class="form-control" id="deployName{{case.id}}" 
+                                                   name="name" value="{{case.name}}-deployment" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group row">
+                                        <label for="deployDescription{{case.id}}" class="col-sm-3 col-form-label">Description</label>
+                                        <div class="col-sm-9">
+                                            <textarea class="form-control" id="deployDescription{{case.id}}" 
+                                                      name="description" rows="3">{{case.NST|tojson}}</textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group row">
+                                        <label for="deployIMSI{{case.id}}" class="col-sm-3 col-form-label">IMSI Range</label>
+                                        <div class="col-sm-9">
+                                            <input type="text" class="form-control" id="deployIMSI{{case.id}}" 
+                                                   name="imsi_range" value="208950000000001-208950000000003" required>
+                                            <small class="form-text text-muted">Format: START-END (e.g., 208950000000001-208950000000003)</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Authentication Method Section -->
+                                    <div class="form-group row">
+                                        <label class="col-sm-3 col-form-label">Authentication Method</label>
+                                        <div class="col-sm-9">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="auth_method" 
+                                                       id="auth_auto{{case.id}}" value="auto" checked>
+                                                <label class="form-check-label" for="auth_auto{{case.id}}">
+                                                    Auto-generate keys for each IMSI
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="auth_method" 
+                                                       id="auth_shared{{case.id}}" value="shared">
+                                                <label class="form-check-label" for="auth_shared{{case.id}}">
+                                                    Use shared keys for all IMSIs
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="button" class="btn btn-primary" onclick="console.log('{{case.NST|tojson}}')">Deploy</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="bi bi-x-circle me-1"></i>Cancel
+                                </button>
+                                <button type="button" class="btn btn-success" data-deploy-template="{{case.id}}" id="deploy-btn-{{case.id}}">
+                                    <i class="bi bi-play-circle me-1"></i>Deploy Now
+                                </button>
                             </div>
                         </div>
                     </div>
-                    </div>
-
-                    {% endfor %}
-                </tbody>
-            </table>
-            <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal"
-            data-bs-target="#GSMAModal">Request Slice with GSMA Template</button>
-
-            <!-- <button type="button" class="btn btn-primary btn-lg" onclick="">Deploy with GSMA Template</button> -->
-            <!-- <button type="button" class="btn btn-primary btn-lg" onclick="allocNSSI( {{ use_cases }} )">Deploy Slice</button> -->
-            <!-- <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal"
-                data-bs-target="#exampleModal">Add Slice Template</button> -->
+                </div>
+                {% endfor %}
+                
+                <!-- Enhanced Action Buttons -->
+                <div class="d-flex justify-content-center gap-3 mt-4">
+                    <button type="button" class="btn btn-modern btn-lg" data-bs-toggle="modal" data-bs-target="#GSMAModal">
+                        <i class="bi bi-plus-circle me-2"></i>Request Slice with GSMA Template
+                    </button>
+                    
+                    <!-- Emergency Unfreeze Button (hidden by default) -->
+                    <button type="button" class="btn btn-warning btn-sm" id="emergency-reset-btn" 
+                            style="position: fixed; top: 10px; right: 10px; z-index: 9999; opacity: 0.7;" 
+                            title="Click if page becomes unresponsive (Ctrl+Alt+U)">
+                        <i class="bi bi-exclamation-triangle me-1"></i>Emergency Reset
+                    </button>
+                    
+                    <!-- Server Status Check Button -->
+                    <button type="button" class="btn btn-info btn-sm" id="server-status-btn" 
+                            style="position: fixed; top: 50px; right: 10px; z-index: 9999; opacity: 0.7;" 
+                            title="Check if server is running">
+                        <i class="bi bi-server me-1"></i>Server Status
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
 <!-- Modal -->
 <div class="modal fade" id="GSMAModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
     aria-hidden="true">
@@ -89,16 +365,14 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="exampleModalLabel">Add Network Subnet Slice Template</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="subslice-template-gsma-form">
                     <div class="form-group row">
-                        <label for="inputEmail3" class="col-sm-2 p-3 col-form-label">Name</label>
+                        <label for="inputGsmaName" class="col-sm-2 p-3 col-form-label">Name</label>
                         <div class="col-sm-10">
-                            <input type="email" class="form-control" id="inputName" placeholder="Name" name="name">
+                            <input type="text" class="form-control" id="inputGsmaName" placeholder="Name" name="name">
                         </div>
                     </div>
                     <div class="form-group row">
@@ -112,49 +386,49 @@
                         <label class="col-sm-2 p-3 col-form-label">Authentication Method</label>
                         <div class="col-sm-10">
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="auth_method" id="auth_auto" value="auto" checked>
-                                <label class="form-check-label" for="auth_auto">
+                                <input class="form-check-input" type="radio" name="auth_method" id="auth_auto_gsma" value="auto" checked>
+                                <label class="form-check-label" for="auth_auto_gsma">
                                     Auto-generate keys for each IMSI
                                 </label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="auth_method" id="auth_shared" value="shared">
-                                <label class="form-check-label" for="auth_shared">
+                                <input class="form-check-input" type="radio" name="auth_method" id="auth_shared_gsma" value="shared">
+                                <label class="form-check-label" for="auth_shared_gsma">
                                     Use shared keys for all IMSIs
                                 </label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="auth_method" id="auth_pattern" value="pattern">
-                                <label class="form-check-label" for="auth_pattern">
+                                <input class="form-check-input" type="radio" name="auth_method" id="auth_pattern_gsma" value="pattern">
+                                <label class="form-check-label" for="auth_pattern_gsma">
                                     Generate keys using IMSI-based pattern
                                 </label>
                             </div>
                         </div>
                     </div>
-                    <div class="form-group row" id="shared_keys_section" style="display: none;">
-                        <label for="inputSharedK" class="col-sm-2 p-3 col-form-label">Shared K Key</label>
+                    <div class="form-group row" id="shared_keys_section_gsma" style="display: none;">
+                        <label for="inputSharedKGsma" class="col-sm-2 p-3 col-form-label">Shared K Key</label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control" id="inputSharedK" placeholder="32-character hex string (e.g., 465B5CE8B199B49FAA5F0A2EE238A6BC)" name="shared_k" maxlength="32" pattern="[0-9A-Fa-f]{32}">
+                            <input type="text" class="form-control" id="inputSharedKGsma" placeholder="32-character hex string (e.g., 465B5CE8B199B49FAA5F0A2EE238A6BC)" name="shared_k" maxlength="32" pattern="[0-9A-Fa-f]{32}">
                             <small class="form-text text-muted">128-bit key in hexadecimal format (32 characters)</small>
                         </div>
                     </div>
-                    <div class="form-group row" id="shared_opc_section" style="display: none;">
-                        <label for="inputSharedOPc" class="col-sm-2 p-3 col-form-label">Shared OPc Key</label>
+                    <div class="form-group row" id="shared_opc_section_gsma" style="display: none;">
+                        <label for="inputSharedOPcGsma" class="col-sm-2 p-3 col-form-label">Shared OPc Key</label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control" id="inputSharedOPc" placeholder="32-character hex string (e.g., E8ED289DEBA952E4283B54E88E6183CA)" name="shared_opc" maxlength="32" pattern="[0-9A-Fa-f]{32}">
+                            <input type="text" class="form-control" id="inputSharedOPcGsma" placeholder="32-character hex string (e.g., E8ED289DEBA952E4283B54E88E6183CA)" name="shared_opc" maxlength="32" pattern="[0-9A-Fa-f]{32}">
                             <small class="form-text text-muted">128-bit OPc key in hexadecimal format (32 characters)</small>
                         </div>
                     </div>
-                    <div class="form-group row" id="pattern_options_section" style="display: none;">
-                        <label for="inputKeyPattern" class="col-sm-2 p-3 col-form-label">Key Pattern</label>
+                    <div class="form-group row" id="pattern_options_section_gsma" style="display: none;">
+                        <label for="inputKeyPatternGsma" class="col-sm-2 p-3 col-form-label">Key Pattern</label>
                         <div class="col-sm-10">
-                            <select class="form-control" id="inputKeyPattern" name="key_pattern">
+                            <select class="form-control" id="inputKeyPatternGsma" name="key_pattern">
                                 <option value="imsi_derived">Derive from IMSI (deterministic)</option>
                                 <option value="sequential">Sequential increment from base</option>
                                 <option value="operator_specific">Operator-specific algorithm</option>
                             </select>
-                            <input type="text" class="form-control mt-2" id="inputBaseK" placeholder="Base K key for pattern generation" name="base_k" maxlength="32" pattern="[0-9A-Fa-f]{32}">
-                            <input type="text" class="form-control mt-2" id="inputBaseOPc" placeholder="Base OPc key for pattern generation" name="base_opc" maxlength="32" pattern="[0-9A-Fa-f]{32}">
+                            <input type="text" class="form-control mt-2" id="inputBaseKGsma" placeholder="Base K key for pattern generation" name="base_k" maxlength="32" pattern="[0-9A-Fa-f]{32}">
+                            <input type="text" class="form-control mt-2" id="inputBaseOPcGsma" placeholder="Base OPc key for pattern generation" name="base_opc" maxlength="32" pattern="[0-9A-Fa-f]{32}">
                         </div>
                     </div>
                     <!-- Authentication Help Section -->
@@ -175,15 +449,37 @@
                         // Show/hide sections based on authentication method selection
                         document.querySelectorAll('input[name="auth_method"]').forEach(radio => {
                             radio.addEventListener('change', function() {
-                                document.getElementById('shared_keys_section').style.display = 'none';
-                                document.getElementById('shared_opc_section').style.display = 'none';
-                                document.getElementById('pattern_options_section').style.display = 'none';
-                                
-                                if (this.value === 'shared') {
-                                    document.getElementById('shared_keys_section').style.display = 'block';
-                                    document.getElementById('shared_opc_section').style.display = 'block';
-                                } else if (this.value === 'pattern') {
-                                    document.getElementById('pattern_options_section').style.display = 'block';
+                                // Hide all sections first
+                                const gsmaModal = this.closest('#GSMAModal');
+                                if (gsmaModal) {
+                                    // GSMA Modal specific IDs
+                                    document.getElementById('shared_keys_section_gsma').style.display = 'none';
+                                    document.getElementById('shared_opc_section_gsma').style.display = 'none';
+                                    document.getElementById('pattern_options_section_gsma').style.display = 'none';
+                                    
+                                    if (this.value === 'shared') {
+                                        document.getElementById('shared_keys_section_gsma').style.display = 'block';
+                                        document.getElementById('shared_opc_section_gsma').style.display = 'block';
+                                    } else if (this.value === 'pattern') {
+                                        document.getElementById('pattern_options_section_gsma').style.display = 'block';
+                                    }
+                                } else {
+                                    // Deploy Modal specific IDs (dynamic based on case.id)
+                                    const sections = ['shared_keys_section', 'shared_opc_section', 'pattern_options_section'];
+                                    sections.forEach(section => {
+                                        const element = document.getElementById(section);
+                                        if (element) element.style.display = 'none';
+                                    });
+                                    
+                                    if (this.value === 'shared') {
+                                        const sharedSection = document.getElementById('shared_keys_section');
+                                        const opcSection = document.getElementById('shared_opc_section');
+                                        if (sharedSection) sharedSection.style.display = 'block';
+                                        if (opcSection) opcSection.style.display = 'block';
+                                    } else if (this.value === 'pattern') {
+                                        const patternSection = document.getElementById('pattern_options_section');
+                                        if (patternSection) patternSection.style.display = 'block';
+                                    }
                                 }
                             });
                         });
@@ -208,7 +504,7 @@
                         }
 
                         // Add validation to key input fields
-                        ['inputSharedK', 'inputSharedOPc', 'inputBaseK', 'inputBaseOPc'].forEach(id => {
+                        ['inputSharedKGsma', 'inputSharedOPcGsma', 'inputBaseKGsma', 'inputBaseOPcGsma'].forEach(id => {
                             const input = document.getElementById(id);
                             if (input) {
                                 input.addEventListener('input', function() {
@@ -219,7 +515,7 @@
                         });
                     </script>
                     <div class="form-group row">
-                        <label for="inputEmail3" class="col-sm-2  p-3 col-form-label">GSMA Request Structure</label>
+                        <label for="inputGSMA" class="col-sm-2  p-3 col-form-label">GSMA Request Structure</label>
                         <div class="col-sm-10">
                             <textarea type="text" class="form-control" id="inputGSMA" name="description" rows="20" cols="80">{
     "type": "custom",
@@ -369,9 +665,7 @@ aria-hidden="true">
     <div class="modal-content">
         <div class="modal-header">
             <h5 class="modal-title" id="exampleModalLabel">Add Sec Network Slice Template</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
             <div class="container-fluid">
@@ -420,34 +714,31 @@ aria-hidden="true">
 </div>
 
 <!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+<div class="modal fade" id="catalogModal" tabindex="-1" role="dialog" aria-labelledby="catalogModalLabel"
 aria-hidden="true">
 <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Add Network Slice Template</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
+            <h5 class="modal-title" id="catalogModalLabel">Add Network Slice Template</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body">
-            <form id="slice-template-form">
+        <div class="modal-body">                <form id="slice-template-form">
                 <div class="form-group row">
-                    <label for="inputEmail3" class="col-sm-2 p-3 col-form-label">Name</label>
+                    <label for="inputSliceName" class="col-sm-2 p-3 col-form-label">Name</label>
                     <div class="col-sm-10">
-                        <input type="email" class="form-control" id="inputEmail3" placeholder="Name" name="name">
+                        <input type="text" class="form-control" id="inputSliceName" placeholder="Name" name="name">
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="inputEmail3" class="col-sm-2 p-3 col-form-label">Description</label>
+                    <label for="inputSliceDescription" class="col-sm-2 p-3 col-form-label">Description</label>
                     <div class="col-sm-10">
-                        <input type="email" class="form-control" id="inputEmail3" placeholder="Description" name="description">
+                        <input type="text" class="form-control" id="inputSliceDescription" placeholder="Description" name="description">
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="inputEmail3" class="col-sm-2 p-3 col-form-label">RAN Template</label>
+                    <label for="inputRanTemplate" class="col-sm-2 p-3 col-form-label">RAN Template</label>
                     <div class="col-sm-10">
-                        <select class="form-control" name="ran_template">
+                        <select class="form-control" id="inputRanTemplate" name="ran_template">
                             {% for nsst_ran in nsst_ran_list %}
                             <option>{{ nsst_ran.name }}</option>
                             {% endfor %}
@@ -455,17 +746,17 @@ aria-hidden="true">
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="inputEmail3" class="col-sm-2 p-3 col-form-label">TN Template</label>
+                    <label for="inputTnTemplate" class="col-sm-2 p-3 col-form-label">TN Template</label>
                     <div class="col-sm-10">
-                        <select class="form-control" name="core_template">
+                        <select class="form-control" id="inputTnTemplate" name="tn_template">
                         </select>
                     </div>
                 </div>
 
                 <div class="form-group row">
-                    <label for="inputEmail3" class="col-sm-2 p-3 col-form-label">Core Template</label>
+                    <label for="inputCoreTemplate" class="col-sm-2 p-3 col-form-label">Core Template</label>
                     <div class="col-sm-10">
-                        <select class="form-control" name="core_template">
+                        <select class="form-control" id="inputCoreTemplate" name="core_template">
                             {% for nsst_core in nsst_core_list %}
                             <option>{{ nsst_core.name }}</option>
                             {% endfor %}
@@ -476,8 +767,8 @@ aria-hidden="true">
                     <div class="col-sm-2">Shared?</div>
                     <div class="col-sm-10">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="gridCheck1" name="is_shared">
-                            <label class="form-check-label" for="gridCheck1">
+                            <input class="form-check-input" type="checkbox" id="gridCheckCatalog" name="is_shared">
+                            <label class="form-check-label" for="gridCheckCatalog">
                                 True
                             </label>
                         </div>

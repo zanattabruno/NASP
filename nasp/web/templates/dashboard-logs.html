@@ -1,17 +1,50 @@
 {% extends "base.html" %}
 {% set active = "Dashboard" %}
+{% block page_title %}Network Dashboard - Logs{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
+
 {% block content %}
+<body class="dashboard-page">
 <div class="body">
     <div class="body-title">
-        <div class="body-title-opt1" onclick="window.location='/dashboard-topology';">TOPOLOGY</div>
-        <div class="body-title-opt1 " onclick="window.location='/dashboard-metrics';">METRICS</div>
-        <div class="body-title-opt2 " onclick="window.location='/dashboard-tracing';">TRACING</div>
-        <div class="body-title-opt2 active" onclick="window.location='/dashboard-logs';">LOGS</div>
+        <div class="body-title-opt1" data-navigate="/dashboard-topology?role={{ role }}">
+            <i class="bi bi-diagram-3 me-2"></i>TOPOLOGY
+        </div>
+        <div class="body-title-opt1" data-navigate="/dashboard-metrics?role={{ role }}">
+            <i class="bi bi-graph-up me-2"></i>METRICS
+        </div>
+        <div class="body-title-opt2" data-navigate="/dashboard-tracing?role={{ role }}">
+            <i class="bi bi-share me-2"></i>TRACING
+        </div>
+        <div class="body-title-opt2 active" data-navigate="/dashboard-logs?role={{ role }}">
+            <i class="bi bi-file-text me-2"></i>LOGS
+        </div>
     </div>
     <div class="body-main">
-        <embed type="text/html"
-            src="http://191.4.205.117:3000/explore?orgId=1&left=%5B%22now-1h%22,%22now%22,%22Loki%22,%7B%22expr%22:%22%7Bnamespace%3D%5C%221274401-demo%5C%22%7D%22%7D%5D&kiosk"
-            width=100% height=100%>
+        <div class="logs-container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3><i class="bi bi-file-text me-2"></i>System Logs</h3>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshLogs()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="exportLogs()">
+                        <i class="bi bi-download me-1"></i>Export
+                    </button>
+                </div>
+            </div>
+            <embed type="text/html"
+                src="http://191.4.205.117:3000/explore?orgId=1&left=%5B%22now-1h%22,%22now%22,%22Loki%22,%7B%22expr%22:%22%7Bnamespace%3D%5C%221274401-demo%5C%22%7D%22%7D%5D&kiosk"
+                width=100% height=600>
+        </div>
     </div>
 </div>
+</body>
 {% endblock %}
