@@ -62,3 +62,22 @@
   margin-right: 8px;
   margin-bottom: 8px;
 }
+
+/* Error state styling */
+.template-error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: var(--border-radius);
+  padding: 20px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.template-error:before {
+  content: "⚠️ ";
+  font-size: 16px;
+}

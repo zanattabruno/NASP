@@ -56,10 +56,8 @@ aria-hidden="true">
                 <div class="row">
                     <div class="col-12">
                         <h5 class="modal-title" id="exampleModalLabel{{case.id}}">NST</h5>
-                        <pre id="teste{{case.id}}" class="template-config" data-template-data="{{ case.NST|tojson }}">
-                            <!-- Template data will be formatted by JavaScript -->
-                        </pre>
-        
+                        <pre id="teste{{case.id}}" class="template-config">{{ case.NST|tojson(indent=4) if case.NST else "No template data available" }}</pre>
+                        <script type="application/json" id="json-data-{{case.id}}">{{ case.NST|tojson if case.NST else '{}' }}</script>
                     </div>
 
                 </div>

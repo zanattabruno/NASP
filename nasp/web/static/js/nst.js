@@ -7,8 +7,17 @@ const NST = {
      * Initialize NST functionality
      */
     init: function() {
+        console.log('Initializing NST...');
         this.initializeTemplateFormatting();
         this.setupFormValidation();
+        
+        // Add debug function to window for console access
+        window.debugNST = this.debugTemplateData.bind(this);
+        
+        // Run debug after a short delay to allow DOM to be ready
+        setTimeout(() => {
+            this.debugTemplateData();
+        }, 500);
     },
 
     /**
@@ -17,13 +26,28 @@ const NST = {
     initializeTemplateFormatting: function() {
         // Format all template data when modals are shown
         const modals = document.querySelectorAll('[id^="sec-modal"]');
+        console.log('Found modals:', modals.length);
+        
         modals.forEach(modal => {
             modal.addEventListener('shown.bs.modal', () => {
                 const modalId = modal.id;
                 const caseId = modalId.replace('sec-modal', '');
+                console.log('Modal shown for case ID:', caseId);
                 this.formatTemplateData(caseId);
             });
         });
+        
+        // Also format any existing template data on page load
+        setTimeout(() => {
+            const preElements = document.querySelectorAll('[id^="teste"]');
+            preElements.forEach(preElement => {
+                const elementId = preElement.id;
+                const caseId = elementId.replace('teste', '');
+                if (caseId) {
+                    this.formatTemplateData(caseId);
+                }
+            });
+        }, 100);
     },
 
     /**
@@ -31,16 +55,86 @@ const NST = {
      */
     formatTemplateData: function(caseId) {
         const preElement = document.querySelector(`#teste${caseId}`);
-        if (preElement && preElement.dataset.templateData) {
+        const jsonScript = document.querySelector(`#json-data-${caseId}`);
+        
+        if (preElement) {
             try {
-                const templateData = JSON.parse(preElement.dataset.templateData);
-                preElement.innerHTML = JSON.stringify(templateData, null, 2);
+                let templateData;
+                
+                // Try to get data from the dedicated script tag first (safer approach)
+                if (jsonScript && jsonScript.textContent) {
+                    templateData = JSON.parse(jsonScript.textContent);
+                }
+                // Fallback to data attribute
+                else if (preElement.dataset.templateData) {
+                    // Clean the data first to handle any encoding issues
+                    let rawData = preElement.dataset.templateData;
+                    
+                    // Decode HTML entities that might have been escaped
+                    const textarea = document.createElement('textarea');
+                    textarea.innerHTML = rawData;
+                    rawData = textarea.value;
+                    
+                    templateData = JSON.parse(rawData);
+                } 
+                // Fallback to text content
+                else {
+                    const textContent = preElement.textContent || preElement.innerText;
+                    if (textContent && textContent.trim() !== '' && !textContent.includes('No template data available')) {
+                        templateData = JSON.parse(textContent);
+                    } else {
+                        // Default template structure if no data is available
+                        templateData = {
+                            "message": "No template data available",
+                            "type": "template", 
+                            "status": "empty"
+                        };
+                    }
+                }
+                
+                // Format and display the JSON with better formatting
+                preElement.innerHTML = JSON.stringify(templateData, null, 4);
+                preElement.classList.remove('template-error');
                 preElement.classList.add('template-preview');
                 this.highlightJSON(preElement);
+                
+                console.log(`✅ Successfully formatted template data for case ${caseId}`);
+                
             } catch (error) {
-                console.error('Error formatting template data:', error);
-                preElement.innerHTML = 'Error formatting template data';
+                console.error('Error formatting template data for case', caseId, ':', error);
+                
+                // Try to show the raw data if JSON parsing fails
+                let fallbackContent = '';
+                if (jsonScript && jsonScript.textContent) {
+                    fallbackContent = 'From script tag:\n' + jsonScript.textContent;
+                } else if (preElement.dataset.templateData) {
+                    fallbackContent = 'From data attribute:\n' + preElement.dataset.templateData;
+                } else {
+                    fallbackContent = 'No data source found';
+                }
+                
+                const errorInfo = `Template Data Format Error
+
+Error: ${error.message}
+
+Case ID: ${caseId}
+
+Debug Info:
+${fallbackContent.substring(0, 500)}${fallbackContent.length > 500 ? '...' : ''}
+
+This error usually occurs when:
+1. The JSON contains invalid characters
+2. Scientific notation numbers are not properly handled
+3. The data was corrupted during transfer
+
+Please check the template configuration or contact support.`;
+
+                preElement.innerHTML = errorInfo;
+                preElement.classList.remove('template-preview');
+                preElement.classList.add('template-error');
             }
+        } else {
+            console.warn('Pre element not found for case:', caseId);
         }
     },
 
@@ -165,7 +259,40 @@ const NST = {
             // Implementation would need backend support
             alert('Template duplication feature will be implemented');
         }
-    }
+    },
+
+    /**
+     * Debug function to help troubleshoot template data issues
+     */
+    debugTemplateData: function() {
+        console.log('=== NST Template Data Debug ===');
+        
+        // Check all pre elements with template data
+        const preElements = document.querySelectorAll('[id^="teste"]');
+        console.log('Found pre elements:', preElements.length);
+        
+        preElements.forEach((preElement, index) => {
+            console.log(`Pre element ${index + 1}:`, {
+                id: preElement.id,
+                hasDataAttribute: !!preElement.dataset.templateData,
+                dataLength: preElement.dataset.templateData ? preElement.dataset.templateData.length : 0,
+                textContent: preElement.textContent?.substring(0, 100) + '...',
+                classes: preElement.className
+            });
+            
+            if (preElement.dataset.templateData) {
+                try {
+                    const parsed = JSON.parse(preElement.dataset.templateData);
+                    console.log(`✅ Valid JSON for ${preElement.id}`);
+                } catch (e) {
+                    console.log(`❌ Invalid JSON for ${preElement.id}:`, e.message);
+                    console.log('Raw data:', preElement.dataset.templateData.substring(0, 200));
+                }
+            }
+        });
+        
+        console.log('=== End Debug ===');
+    },
 };
 
 // Initialize when DOM is ready
