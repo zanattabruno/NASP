@@ -30,11 +30,6 @@ tags:
     externalDocs:
       description: Find out more
       url: http://swagger.io
-  - name: NSSI
-    description: Access to Petstore orders
-    externalDocs:
-      description: Find out more about our store
-      url: http://swagger.io
   - name: Controller Key
     description: Access to Petstore orders
     externalDocs:
@@ -119,101 +114,6 @@ paths:
                     - nrf
                   NSST_id: 123
                 
-        '400':
-          description: Invalid ID supplied
-        '404':
-          description: Pet not found
-        '405':
-          description: Validation exception
-
-  /nssi:
-    delete:
-      tags:
-        - NSSI
-      summary: Update an existing pet
-      description: Update an existing pet by Id
-      operationId: deleteNSSI
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NSST'          
-        '400':
-          description: Invalid ID supplied
-        '404':
-          description: Pet not found
-        '405':
-          description: Validation exception
-    post:
-      tags:
-        - NSSI
-      summary: Create a NSSI
-      description: Create a NSSI
-      operationId: postNSSI
-      requestBody:
-        description: NSSI selection
-        content:
-          application/json:
-            schema:
-              type: object
-              example:
-                {
-                  s-nssai: {
-                    sd: 123,
-                    sst: 1234
-                  },
-                  NSST_id: 123
-                }
-        required: true
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  {
-                    NSSI_id: 222
-                  }
-        '400':
-          description: Invalid ID supplied
-        '404':
-          description: Pet not found
-        '405':
-          description: Validation exception
-    get:
-      tags:
-        - NSSI
-      summary: Update an existing pet
-      description: Update an existing pet by Id
-      operationId: getNSSI
-      parameters:
-        - in: query
-          name: fields
-          allowReserved: true
-          schema:
-            type: integer
-            example: 222
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                example:
-                  {
-                    status: "creating",
-                    instances: ["AMF", "SMF", "UPF"],
-                    interfaces: {
-                      port: 34080,
-                      ip: "127.0.0.1"
-                    }
-                    
-                  }
         '400':
           description: Invalid ID supplied
         '404':

@@ -53,14 +53,7 @@ def nasp_ui(app):
         response = requests.get("http://localhost:5000/nasp/nst", timeout=100)
         return render_template("modal.html", use_cases = response.json())
 
-    @app.route('/nsst')
-    def nsst():
-        data = []
-        response = requests.get("http://localhost:5000/nssmfRAN/nsst", timeout=100)
-        data += response.json()
-        response = requests.get("http://localhost:5000/nssmfCore/nsst", timeout=100)
-        data += response.json()
-        return render_template("nsst.html", use_cases = data, role=request.args.get('role'))
+
 
 
     @app.route('/dashboard-topology')
@@ -254,22 +247,6 @@ def nsmf(app):
 def nssmf_core(app):
     """Nssmf Core Routes"""
     prefix = "/nssmfCore"
-    @app.route(f"{prefix}/allocNssi/", methods=['PUT'])
-    def alloc_nssi_core():
-        try:
-            NssmfCore = NssmfCoreService()
-            return NssmfCore.alloc_nssi(request)
-        except Exception as exception:
-            return str(exception), 500
-
-    @app.route(f"{prefix}/nssi/", methods=['GET'])
-    def get_all_nssi():
-        try:
-            NssmfCore = NssmfCoreService()
-            return NssmfCore.get_all_nssi(request)
-        except Exception as exception:
-            return str(exception), 500
-
     @app.route(f"{prefix}/nsst/", methods=['GET'])
     def get_all_nsst_core():
         try:
@@ -289,27 +266,12 @@ def nssmf_core(app):
 def nssmf_ran(app):
     """Nssmf RAN Routes"""
     prefix = "/nssmfRAN"
-    @app.route(f"{prefix}/allocNssi/", methods=['PUT'])
-    def alloc_nssi_ran():
-        try:
-            NssmfRAN = NssmfRANService()
-            return NssmfRAN.alloc_nssi(request)
-        except Exception as exception:
-            return str(exception), 500
 
     @app.route(f"{prefix}/nsst/", methods=['GET'])
     def get_all_nsst_ran():
         try:
             NssmfRAN = NssmfRANService()
             return NssmfRAN.get_all_nsst(request)
-        except Exception as exception:
-            return str(exception), 500
-
-    @app.route(f"{prefix}/nssi/", methods=['GET'])
-    def get_all_nssi_ran():
-        try:
-            NssmfRAN = NssmfRANService()
-            return NssmfRAN.get_all_nssi(request)
         except Exception as exception:
             return str(exception), 500
 

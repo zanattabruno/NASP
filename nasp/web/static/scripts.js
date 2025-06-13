@@ -44,37 +44,7 @@ function addAMF_temp(form){
 
   $.ajax(settings).done(function (response) {
     console.log(response);
-    window.location.href = 'nsst';
-  });
-}
-
-function createNSST(form) {
-  let formData = new FormData(form);
-  var object = {};
-  formData.forEach((value, key) => object[key] = value);
-  var json = JSON.stringify(object);
-  console.log(object)
-  if (object.domain == "RAN") {
-    URI = "/nssmfRAN/nsst"
-  }
-  if (object.domain == "Core") {
-    URI = "/nssmfCore/nsst"
-  }
-
-  var settings = {
-    "url": BASE_URL+URI,
-    "method": "PUT",
-    "timeout": 0,
-    "headers": {
-      "Content-Type": "application/json"
-    },
-    "data": json,
-  };
-  console.log(settings)
-
-  $.ajax(settings).done(function (response) {
-    console.log(response);
-    window.location.href = 'nsst';
+    window.location.href = '/';
   });
 }
 
