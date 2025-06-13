@@ -3,8 +3,6 @@ import logging
 import time
 from flask import request, render_template
 from src.services.ControllerKeyService import ControllerKeyService
-from src.services.NssmfCoreService import NssmfCoreService
-from src.services.NssmfRANService import NssmfRANService
 # from src.services.NsmfService import NsmfService
 from src.services.nsmf_service import NsmfService
 
@@ -13,8 +11,6 @@ def configure(app):
     """Configure App Routes"""
     nasp_ui(app)
     nsmf(app)
-    nssmf_core(app)
-    nssmf_ran(app)
 
 def nasp_ui(app):
     """NASP UI"""
@@ -31,22 +27,12 @@ def nasp_ui(app):
         logging.info("NST")
         response = requests.get("http://localhost:5000/nasp/nst", timeout=100)
         logging.info(response.json())
-        logging.info("RAN")
-
-        nsst_ran_list = requests.get("http://localhost:5000/nssmfRAN/nsst", timeout=100)
-        logging.info(nsst_ran_list.json())
-        logging.info("CORE")
-
-        nsst_core_list = requests.get("http://localhost:5000/nssmfCore/nsst", timeout=100)
-        logging.info(nsst_core_list.json())
-        return render_template("nst.html",use_cases = response.json(), nsst_ran_list = nsst_ran_list.json(), nsst_core_list = nsst_core_list.json(),role=request.args.get('role'))
+        return render_template("nst.html",use_cases = response.json(), role=request.args.get('role'))
 
     @app.route('/catalog')
     def catalog():
         response = requests.get("http://localhost:5000/nasp/nst", timeout=100)
-        nsst_ran_list = requests.get("http://localhost:5000/nssmfRAN/nsst", timeout=100)
-        nsst_core_list = requests.get("http://localhost:5000/nssmfCore/nsst", timeout=100)
-        return render_template("catalog.html",use_cases = response.json(), nsst_ran_list = nsst_ran_list.json(), nsst_core_list = nsst_core_list.json(), role=request.args.get('role'))
+        return render_template("catalog.html",use_cases = response.json(), role=request.args.get('role'))
 
     @app.route('/dashboard-topology')
     def topology():
@@ -242,44 +228,6 @@ def nsmf(app):
                 },
                 "test_only": True
             }
-        except Exception as exception:
-            return str(exception), 500
-def nssmf_core(app):
-    """Nssmf Core Routes"""
-    prefix = "/nssmfCore"
-    @app.route(f"{prefix}/nsst/", methods=['GET'])
-    def get_all_nsst_core():
-        try:
-            NssmfCore = NssmfCoreService()
-            return NssmfCore.get_all_nsst(request)
-        except Exception as exception:
-            return str(exception), 500
-    
-    @app.route(f"{prefix}/nsst/", methods=['PUT'])
-    def add_nsst_core():
-        try:
-            NssmfCore = NssmfCoreService()
-            return NssmfCore.add_nsst(request)
-        except Exception as exception:
-            return str(exception), 500
-
-def nssmf_ran(app):
-    """Nssmf RAN Routes"""
-    prefix = "/nssmfRAN"
-
-    @app.route(f"{prefix}/nsst/", methods=['GET'])
-    def get_all_nsst_ran():
-        try:
-            NssmfRAN = NssmfRANService()
-            return NssmfRAN.get_all_nsst(request)
-        except Exception as exception:
-            return str(exception), 500
-
-    @app.route(f"{prefix}/nsst/", methods=['PUT'])
-    def add_nsst_ran():
-        try:
-            NssmfRAN = NssmfRANService()
-            return NssmfRAN.add_nsst(request)
         except Exception as exception:
             return str(exception), 500
 

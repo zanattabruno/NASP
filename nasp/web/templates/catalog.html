@@ -736,9 +736,7 @@ aria-hidden="true">
                     <label for="inputRanTemplate" class="col-sm-2 p-3 col-form-label">RAN Template</label>
                     <div class="col-sm-10">
                         <select class="form-control" id="inputRanTemplate" name="ran_template">
-                            {% for nsst_ran in nsst_ran_list %}
-                            <option>{{ nsst_ran.name }}</option>
-                            {% endfor %}
+                            <option>Default RAN Template</option>
                         </select>
                     </div>
                 </div>
@@ -754,9 +752,7 @@ aria-hidden="true">
                     <label for="inputCoreTemplate" class="col-sm-2 p-3 col-form-label">Core Template</label>
                     <div class="col-sm-10">
                         <select class="form-control" id="inputCoreTemplate" name="core_template">
-                            {% for nsst_core in nsst_core_list %}
-                            <option>{{ nsst_core.name }}</option>
-                            {% endfor %}
+                            <option>Default Core Template</option>
                         </select>
                     </div>
                 </div>
