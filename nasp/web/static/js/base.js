@@ -4,7 +4,7 @@
 
 // Global configuration
 const CONFIG = {
-    BASE_URL: "http://localhost:5000",
+    BASE_URL: window.location.origin,
     API_TIMEOUT: 8000,
     REFRESH_INTERVAL: 5000
 };

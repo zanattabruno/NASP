@@ -1,110 +1,28 @@
 /**
- * Legacy scripts - to be migrated to modular structure
- * @deprecated Use the new modular JS files instead
+ * Essential scripts for NASP functionality
  */
 
-// Configuration - use CONFIG from base.js instead
-const BASE_URL = "http://localhost:5000";
-
-/**
- * Allocate NSI - Legacy function
- * @deprecated Use NSI.createInstance() instead
- */
-function allocNSI(nst) {
-  console.log("Legacy allocNSI called with:", nst);
-  alert("Creating a New Slice...");
-  // Implementation moved to nsi.js
-}
-/**
- * Modal event handler - Legacy
- * @deprecated Move to appropriate module
- */
-$('#myModal').on('shown.bs.modal', function () {
-  console.log("Modal shown - legacy handler");
-  $('#myInput').trigger('focus');
-});
-
-function addAMF_temp(form){
-  let formData = new FormData(form);
-  var object = {};
-  console.log(formData)
-  formData.forEach((value, key) => object[key] = value);
-  var json = JSON.stringify(object);
-
-  var settings = {
-    "url": "http://127.0.0.1:5000/nssmfCore/nsst",
-    "method": "PUT",
-    "timeout": 0,
-    "headers": {
-      "Content-Type": "application/json"
-    },
-    "data": json,
-  };
-  console.log(settings)
-
-  $.ajax(settings).done(function (response) {
-    console.log(response);
-    window.location.href = '/';
-  });
-}
-
-function createNST(form) {
-  URI = "/nasp/nst"
-  let formData = new FormData(form);
-  var object = {};
-  formData.forEach((value, key) => object[key] = value);
-  var json = JSON.stringify(object);
-  var settings = {
-    "url": BASE_URL+URI,
-    "method": "PUT",
-    "timeout": 0,
-    "headers": {
-      "Content-Type": "application/json"
-    },
-    "data": json,
-  };
-  console.log(settings)
-
-  $.ajax(settings).done(function (response) {
-    console.log(response);
-    window.location.href = '/';
-  });
-}
+// Configuration - dynamically get the base URL to avoid CORS issues
+const BASE_URL = window.location.origin;
 
 // IMSI Range Validation and Processing Functions
 function validateIMSIRange(imsiRange) {
-  // Check for hyphen-separated format
-  if (!imsiRange.includes('-')) {
+  const pattern = /^\d{15}-\d{15}$/;
+  if (!pattern.test(imsiRange)) {
     return false;
   }
   
-  var parts = imsiRange.split('-');
-  if (parts.length !== 2) {
-    return false;
-  }
-  
-  var start = parts[0].trim();
-  var end = parts[1].trim();
-  
-  // IMSI should be 15 digits
-  var imsiRegex = /^[0-9]{15}$/;
-  if (!imsiRegex.test(start) || !imsiRegex.test(end)) {
-    return false;
-  }
-  
-  // Start should be less than end
-  if (parseInt(start) >= parseInt(end)) {
-    return false;
-  }
-  
-  return true;
+  const [start, end] = imsiRange.split('-').map(Number);
+  return start < end;
 }
 
 function parseIMSIRange(imsiRange) {
-  var parts = imsiRange.split('-');
-  var start = parts[0].trim();
-  var end = parts[1].trim();
-  var count = parseInt(end) - parseInt(start) + 1;
+  if (!validateIMSIRange(imsiRange)) {
+    throw new Error('Invalid IMSI range format');
+  }
+  
+  const [start, end] = imsiRange.split('-');
+  const count = parseInt(end) - parseInt(start) + 1;
   
   return {
     start: start,
@@ -114,8 +32,64 @@ function parseIMSIRange(imsiRange) {
   };
 }
 
+// Validation function for hexadecimal keys
+function validateHexKey(key) {
+  return /^[0-9A-Fa-f]+$/.test(key) && key.length === 32;
+}
+
+// Essential HTTP request function
+function request(method, url, data) {
+  var settings = {
+    "url": url,
+    "method": method,
+    "timeout": 8000,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "data": data,
+  };
+
+  return $.ajax(settings)
+    .done(function (response) {
+      console.log("Request successful:", response);
+      return response;
+    })
+    .fail(function (xhr, status, error) {
+      console.error("Request failed:", status, error);
+      return xhr;
+    });
+}
+
+// Legacy NST creation function - kept for backward compatibility
+function createNST(form) {
+  const URI = "/nasp/nst";
+  let formData = new FormData(form);
+  var object = {};
+  formData.forEach((value, key) => object[key] = value);
+  var json = JSON.stringify(object);
+  
+  var settings = {
+    "url": BASE_URL + URI,
+    "method": "PUT",
+    "timeout": 8000,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "data": json,
+  };
+
+  $.ajax(settings).done(function (response) {
+    console.log("NST created:", response);
+    window.location.href = '/';
+  }).fail(function(xhr, status, error) {
+    console.error("NST creation failed:", error);
+    alert("Failed to create template. Please try again.");
+  });
+}
+
+// Essential slice creation function
 function createSliceGSMA(form) {
-  let formData = new FormData(form)
+  let formData = new FormData(form);
   var object = {};
   formData.forEach((value, key) => object[key] = value);
   
@@ -125,7 +99,6 @@ function createSliceGSMA(form) {
       alert("Invalid IMSI range format. Please use format: START-END (e.g., 208950000000001-208950000000010)");
       return;
     }
-    // Parse IMSI range
     var imsiData = parseIMSIRange(object.imsi_range);
     object.imsi_start = imsiData.start;
     object.imsi_end = imsiData.end;
@@ -176,33 +149,25 @@ function createSliceGSMA(form) {
   }
   
   var json = JSON.stringify(object);
-  var data = JSON.parse(json)
-  data.description = JSON.parse(data.description)
-  console.log(data)
-  console.log(JSON.stringify(data))
-  request("PUT", "http://127.0.0.1:5000/nasp/nsi", JSON.stringify(data))
-}
-
-// Validation function for hexadecimal keys
-function validateHexKey(key) {
-  if (!key) return false;
-  return /^[0-9A-Fa-f]{32}$/.test(key);
-}
-
-function request(method,url,data) {
-  var settings = {
-    "url": url,
-    "method": method,
-    "timeout": 0,
-    "headers": {
-      "Content-Type": "application/json"
-    },
-    "data": data,
-  };
-  console.log(settings)
-
-  $.ajax(settings).done(function (response) {
-    console.log(response);
-    window.location.href = '/';
-  });
+  var data = JSON.parse(json);
+  data.description = JSON.parse(data.description);
+  console.log("Deploying slice:", data);
+  
+  request("PUT", BASE_URL + "/nasp/nsi", JSON.stringify(data))
+    .done(function(response) {
+      alert("Slice deployment initiated successfully!");
+      window.location.href = '/nsi';
+    })
+    .fail(function(xhr, status, error) {
+      console.error("Deployment failed:", xhr, status, error);
+      let errorMessage = "Deployment failed. ";
+      if (xhr.responseJSON && xhr.responseJSON.message) {
+        errorMessage += xhr.responseJSON.message;
+      } else if (xhr.responseText) {
+        errorMessage += xhr.responseText;
+      } else {
+        errorMessage += "Please check the console for more details.";
+      }
+      alert(errorMessage);
+    });
 }

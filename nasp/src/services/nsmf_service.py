@@ -245,19 +245,6 @@ class NsmfService():
         except Exception as exception:
             return f"Bad Request - {exception}", 400
 
-
-
-    def delete_delay(self):
-        cmd_list = [f'ssh 127.0.0.1 "tc qdisc del dev eth1 parent 1:1"',
-                    f'ssh 127.0.0.1 "tc qdisc del dev eth1 parent 1:1"']
-        for cmd in cmd_list:
-            try:
-                result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-                return result.decode('utf-8')
-            except Exception as exception:
-                continue
-                raise Exception(exception.output.decode('utf-8'))
-
     def delete_onos_intents(self):
 
         url = "http://67.205.130.238:8181/onos/v1/intents"

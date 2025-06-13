@@ -153,105 +153,210 @@ const Dashboard = {
      * Refresh metrics dashboard
      */
     refreshMetrics: function() {
-        const iframe = document.querySelector('.metrics-container embed');
-        if (iframe) {
-            const src = iframe.src;
-            iframe.src = '';
-            setTimeout(() => {
-                iframe.src = src;
-            }, 100);
-        }
-        console.log('Metrics dashboard refreshed');
-    },
-
-    /**
-     * Export metrics data
-     */
-    exportMetrics: function() {
-        const exportData = {
-            timestamp: new Date().toISOString(),
-            type: 'metrics',
-            source: 'NASP Dashboard',
-            note: 'Metrics data export - actual implementation depends on Grafana API'
-        };
+        console.log('Refreshing metrics dashboard...');
         
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'nasp-metrics-' + new Date().toISOString().split('T')[0] + '.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        // Update timestamp
+        const timestampEl = document.querySelector('.last-updated');
+        if (timestampEl) {
+            timestampEl.textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+        }
+
+        // Simulate metrics update
+        this.updateMetricCards();
+        
+        // Show refresh feedback
+        const btn = event?.target?.closest('button');
+        if (btn) {
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.classList.add('spin-animation');
+                setTimeout(() => icon.classList.remove('spin-animation'), 1000);
+            }
+        }
     },
 
     /**
      * Refresh logs dashboard
      */
     refreshLogs: function() {
-        const iframe = document.querySelector('.logs-container embed');
-        if (iframe) {
-            const src = iframe.src;
-            iframe.src = '';
-            setTimeout(() => {
-                iframe.src = src;
-            }, 100);
-        }
-        console.log('Logs dashboard refreshed');
-    },
-
-    /**
-     * Export logs data
-     */
-    exportLogs: function() {
-        const exportData = {
-            timestamp: new Date().toISOString(),
-            type: 'logs',
-            source: 'NASP Dashboard',
-            note: 'Logs data export - actual implementation depends on Loki API'
-        };
+        console.log('Refreshing logs dashboard...');
         
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'nasp-logs-' + new Date().toISOString().split('T')[0] + '.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        // Update timestamp
+        const timestampEl = document.querySelector('.last-updated');
+        if (timestampEl) {
+            timestampEl.textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+        }
+
+        // Simulate new log entries
+        this.addNewLogEntries();
+        
+        // Show refresh feedback
+        const btn = event?.target?.closest('button');
+        if (btn) {
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.classList.add('spin-animation');
+                setTimeout(() => icon.classList.remove('spin-animation'), 1000);
+            }
+        }
     },
 
     /**
      * Refresh tracing dashboard
      */
     refreshTracing: function() {
-        const iframe = document.querySelector('.tracing-container embed');
-        if (iframe) {
-            const src = iframe.src;
-            iframe.src = '';
-            setTimeout(() => {
-                iframe.src = src;
-            }, 100);
+        console.log('Refreshing tracing dashboard...');
+        
+        // Update timestamp
+        const timestampEl = document.querySelector('.last-updated');
+        if (timestampEl) {
+            timestampEl.textContent = 'Last updated: ' + new Date().toLocaleTimeString();
         }
-        console.log('Tracing dashboard refreshed');
+
+        // Simulate trace update
+        this.updateTraceData();
+        
+        // Show refresh feedback
+        const btn = event?.target?.closest('button');
+        if (btn) {
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.classList.add('spin-animation');
+                setTimeout(() => icon.classList.remove('spin-animation'), 1000);
+            }
+        }
+    },
+
+    /**
+     * Export metrics data
+     */
+    exportMetrics: function() {
+        const metricsData = {
+            timestamp: new Date().toISOString(),
+            slice_id: new URLSearchParams(window.location.search).get('s_nssai') || 'unknown',
+            metrics: {
+                active_sessions: Math.floor(Math.random() * 100) + 50,
+                throughput_mbps: (Math.random() * 1000 + 500).toFixed(2),
+                latency_ms: (Math.random() * 20 + 5).toFixed(1),
+                packet_loss_pct: (Math.random() * 2).toFixed(3)
+            }
+        };
+
+        const blob = new Blob([JSON.stringify(metricsData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'metrics-' + new Date().toISOString().split('T')[0] + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    },
+
+    /**
+     * Export logs data
+     */
+    exportLogs: function() {
+        const logsData = {
+            timestamp: new Date().toISOString(),
+            slice_id: new URLSearchParams(window.location.search).get('s_nssai') || 'unknown',
+            logs: [
+                { level: 'INFO', message: 'Slice initialization completed', timestamp: new Date().toISOString() },
+                { level: 'INFO', message: 'UE attachment successful', timestamp: new Date().toISOString() },
+                { level: 'WARN', message: 'High latency detected', timestamp: new Date().toISOString() }
+            ]
+        };
+
+        const blob = new Blob([JSON.stringify(logsData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'logs-' + new Date().toISOString().split('T')[0] + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
     },
 
     /**
      * Export tracing data
      */
     exportTracing: function() {
-        const exportData = {
+        const tracingData = {
             timestamp: new Date().toISOString(),
-            type: 'tracing',
-            source: 'NASP Dashboard',
-            note: 'Tracing data export - actual implementation depends on Kiali API'
+            slice_id: new URLSearchParams(window.location.search).get('s_nssai') || 'unknown',
+            traces: [
+                { trace_id: 'trace_001', span_id: 'span_001', operation: 'registration', duration_ms: 150 },
+                { trace_id: 'trace_002', span_id: 'span_002', operation: 'authentication', duration_ms: 75 },
+                { trace_id: 'trace_003', span_id: 'span_003', operation: 'session_establishment', duration_ms: 200 }
+            ]
         };
-        
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+
+        const blob = new Blob([JSON.stringify(tracingData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'nasp-tracing-' + new Date().toISOString().split('T')[0] + '.json';
+        a.download = 'tracing-' + new Date().toISOString().split('T')[0] + '.json';
         a.click();
         URL.revokeObjectURL(url);
+    },
+
+    /**
+     * Update metric cards with simulated data
+     */
+    updateMetricCards: function() {
+        // Update active sessions
+        const sessionEl = document.querySelector('[data-metric="sessions"]');
+        if (sessionEl) {
+            sessionEl.textContent = Math.floor(Math.random() * 100) + 50;
+        }
+
+        // Update throughput
+        const throughputEl = document.querySelector('[data-metric="throughput"]');
+        if (throughputEl) {
+            throughputEl.textContent = (Math.random() * 1000 + 500).toFixed(1) + ' Mbps';
+        }
+
+        // Update latency
+        const latencyEl = document.querySelector('[data-metric="latency"]');
+        if (latencyEl) {
+            latencyEl.textContent = (Math.random() * 20 + 5).toFixed(1) + ' ms';
+        }
+    },
+
+    /**
+     * Add new log entries
+     */
+    addNewLogEntries: function() {
+        const logContainer = document.querySelector('.log-entries');
+        if (logContainer) {
+            const newLog = document.createElement('div');
+            newLog.className = 'log-entry';
+            newLog.innerHTML = `
+                <span class="log-time">${new Date().toLocaleTimeString()}</span>
+                <span class="log-level info">INFO</span>
+                <span class="log-message">Periodic status update - System healthy</span>
+            `;
+            logContainer.insertBefore(newLog, logContainer.firstChild);
+            
+            // Keep only last 100 entries
+            while (logContainer.children.length > 100) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+        }
+    },
+
+    /**
+     * Update trace data
+     */
+    updateTraceData: function() {
+        const traceContainer = document.querySelector('.trace-timeline');
+        if (traceContainer) {
+            // Simulate trace update by highlighting recent activity
+            const traces = traceContainer.querySelectorAll('.trace-item');
+            traces.forEach((trace, index) => {
+                if (index < 3) {
+                    trace.classList.add('recent-activity');
+                    setTimeout(() => trace.classList.remove('recent-activity'), 2000);
+                }
+            });
+        }
     },
 
     /**

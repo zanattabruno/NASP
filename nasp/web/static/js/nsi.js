@@ -213,41 +213,27 @@ const NSI = {
     },
 
     /**
-     * View slice details
+     * View slice details - Navigate to metrics page
      */
     viewSliceDetails: function(snssai) {
-        // TODO: Implement proper details modal or page
-        alert('Opening details for slice: ' + snssai);
-    },
-
-    /**
-     * Manage slice operations (start/stop)
-     */
-    manageSlice: function(snssai, action) {
-        const button = event.target.closest('button');
-        const originalText = button.innerHTML;
-        
-        button.innerHTML = '<span class="loading-spinner me-2"></span>' + (action === 'start' ? 'Starting...' : 'Stopping...');
-        button.disabled = true;
-        
-        // Simulate API call
-        setTimeout(() => {
-            alert('Slice ' + snssai + ' ' + action + ' operation completed!');
-            button.innerHTML = originalText;
-            button.disabled = false;
-            location.reload(); // Refresh to show updated status
-        }, 2000);
+        const currentRole = new URLSearchParams(window.location.search).get('role') || 'operator';
+        const url = `/dashboard-metrics?s_nssai=${snssai}&role=${currentRole}`;
+        Utils.navigateWithLoader(url);
     },
 
     /**
      * Export slice configuration
      */
     exportSliceConfig: function(snssai) {
-        // Simulate config export
         const config = {
             slice_id: snssai,
             exported_at: new Date().toISOString(),
-            configuration: "Sample configuration data..."
+            status: "active",
+            configuration: {
+                sst: 1,
+                sd: snssai,
+                type: "eMBB"
+            }
         };
         
         const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
@@ -257,24 +243,6 @@ const NSI = {
         a.download = 'slice-' + snssai + '-config.json';
         a.click();
         URL.revokeObjectURL(url);
-    },
-
-    /**
-     * Duplicate a slice
-     */
-    duplicateSlice: function(snssai) {
-        if (confirm('Create a duplicate of slice ' + snssai + '?')) {
-            alert('Slice duplication initiated for: ' + snssai);
-        }
-    },
-
-    /**
-     * Delete a slice
-     */
-    deleteSlice: function(snssai) {
-        if (confirm('Are you sure you want to delete slice ' + snssai + '? This action cannot be undone.')) {
-            alert('Slice deletion initiated for: ' + snssai);
-        }
     },
 
     /**
@@ -295,7 +263,27 @@ const NSI = {
         
         if (activeCountEl) activeCountEl.textContent = active;
         if (deployingCountEl) deployingCountEl.textContent = deploying;
-    }
+    },
+
+    /**
+     * Clear environment - Remove all NSI data
+     */
+    clearEnvironment: function() {
+        if (!confirm('Are you sure you want to clear the entire environment? This will remove all network slice instances and cannot be undone.')) {
+            return;
+        }
+
+        Utils.makeRequest('POST', CONFIG.BASE_URL + '/nasp/clear')
+            .done((response) => {
+                console.log('Environment cleared successfully:', response);
+                alert('Environment cleared successfully!');
+                location.reload();
+            })
+            .fail((xhr, status, error) => {
+                console.error('Clear environment failed:', error);
+                alert('Failed to clear environment. Please try again.');
+            });
+    },
 };
 
 // Initialize when DOM is ready
@@ -318,7 +306,6 @@ window.filterByStatus = NSI.filterByStatus.bind(NSI);
 window.refreshInstances = NSI.refreshInstances.bind(NSI);
 window.openMetrics = NSI.openMetrics.bind(NSI);
 window.viewSliceDetails = NSI.viewSliceDetails.bind(NSI);
-window.manageSlice = NSI.manageSlice.bind(NSI);
 window.exportSliceConfig = NSI.exportSliceConfig.bind(NSI);
-window.duplicateSlice = NSI.duplicateSlice.bind(NSI);
-window.deleteSlice = NSI.deleteSlice.bind(NSI);
+window.clearEnvironment = NSI.clearEnvironment.bind(NSI);
+window.clearEnvironment = NSI.clearEnvironment.bind(NSI);

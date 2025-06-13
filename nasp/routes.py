@@ -1,5 +1,6 @@
 import requests
 import logging
+import time
 from flask import request, render_template
 from src.services.ControllerKeyService import ControllerKeyService
 from src.services.NssmfCoreService import NssmfCoreService
@@ -47,15 +48,6 @@ def nasp_ui(app):
         nsst_core_list = requests.get("http://localhost:5000/nssmfCore/nsst", timeout=100)
         return render_template("catalog.html",use_cases = response.json(), nsst_ran_list = nsst_ran_list.json(), nsst_core_list = nsst_core_list.json(), role=request.args.get('role'))
 
-
-    @app.route('/modal')
-    def modal():
-        response = requests.get("http://localhost:5000/nasp/nst", timeout=100)
-        return render_template("modal.html", use_cases = response.json())
-
-
-
-
     @app.route('/dashboard-topology')
     def topology():
         return render_template("dashboard-topology.html", nssai = 1, role=request.args.get('role'))
@@ -91,30 +83,30 @@ def nasp_ui(app):
         }]
         return render_template("nsi.html", nsi_list = response.json(), role=request.args.get('role'))
 
-    @app.route('/table')
-    def table():
-        use_cases = [{
-            "name": "mIoT",
-            "description": "Massive IoT",
-            "status": "Pending",
-            "is_shared": False
-        },
-        {
-            "name": "urllc",
-            "description": "Ultra Realiability Low Latency",
-            "status": "Ready",
-            "is_shared": False
-        }]
-        return render_template("table.html", use_cases = use_cases, role=request.args.get('role'))
-
 
     @app.route('/status')
     def alive():
-        return {
-            "commit": "087143285",
-            "database": "ok",
-            "version": "5.1.3"
-        }
+        try:
+            # Check if NST and NSI endpoints are working
+            nst_response = requests.get("http://localhost:5000/nasp/nst", timeout=5)
+            nsi_response = requests.get("http://localhost:5000/nasp/nsi", timeout=5)
+            
+            return {
+                "status": "healthy",
+                "timestamp": time.time(),
+                "services": {
+                    "nst": "ok" if nst_response.status_code == 200 else "error",
+                    "nsi": "ok" if nsi_response.status_code == 200 else "error"
+                },
+                "version": "5.1.3"
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "timestamp": time.time(),
+                "error": str(e),
+                "version": "5.1.3"
+            }, 500
 
 def nsmf(app):
     """
@@ -179,6 +171,14 @@ def nsmf(app):
     
     @app.route(f"{prefix}/clear/", methods=['GET'])
     def clear_environment():
+        try:
+            Nsmf = NsmfService()
+            return Nsmf.clear_environment()
+        except Exception as exception:
+            return str(exception), 500
+
+    @app.route(f"{prefix}/clear/", methods=['POST'])
+    def clear_environment_post():
         try:
             Nsmf = NsmfService()
             return Nsmf.clear_environment()
