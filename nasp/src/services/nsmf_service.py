@@ -473,8 +473,8 @@ class NsmfService():
         
         if method == 'shared':
             # Use shared keys for all subscribers
-            k = auth_config.get('k') or self._generate_security_key()
-            opc = auth_config.get('opc') or self._generate_opc_key()
+            k = auth_config.get('k') or '465B5CE8B199B49FAA5F0A2EE238A6BC'
+            opc = auth_config.get('opc') or 'E8ED289DEBA952E4283B54E88E6183CA'
             return k, opc
             
         elif method == 'pattern':
