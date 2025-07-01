@@ -155,6 +155,17 @@ def nsmf(app):
         except Exception as exception:
             return str(exception), 500
     
+    @app.route(f"{prefix}/nsi/<snssai>", methods=['DELETE'])
+    def delete_nsi_by_snssai(snssai):
+        try:
+            Nsmf = NsmfService()
+            # Add the snssai to the request object for processing
+            from flask import g
+            g.snssai = snssai
+            return Nsmf.delete_nsi(request)
+        except Exception as exception:
+            return str(exception), 500
+    
     @app.route(f"{prefix}/clear/", methods=['GET'])
     def clear_environment():
         try:

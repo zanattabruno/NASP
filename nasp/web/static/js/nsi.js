@@ -27,7 +27,8 @@ const NSI = {
      */
     startMetricsUpdates: function() {
         setInterval(() => {
-            const avgResponseElement = document.querySelector('.card-modern:last-child .card-title');
+            // Use specific ID for Avg Response card
+            const avgResponseElement = document.getElementById('avgResponseTime');
             if (avgResponseElement) {
                 const randomResponse = (Math.random() * 50 + 10).toFixed(1);
                 avgResponseElement.innerHTML = randomResponse + 'ms';
@@ -328,12 +329,40 @@ const NSI = {
         Utils.makeRequest('DELETE', CONFIG.BASE_URL + `/nasp/nsi/${snssai}`)
             .done((response) => {
                 console.log('Slice deleted successfully:', response);
-                alert('Slice deleted successfully!');
-                location.reload();
+                
+                // Show success message
+                if (response && response.message) {
+                    alert(response.message);
+                } else {
+                    alert('Slice deleted successfully!');
+                }
+                
+                // Reload the page to show updated list
+                window.location.reload();
             })
             .fail((xhr, status, error) => {
-                console.error('Delete slice failed:', error);
-                alert('Failed to delete slice. Please try again.');
+                console.error('Delete slice failed:', {xhr, status, error});
+                console.error('Response text:', xhr.responseText);
+                
+                let errorMessage = 'Failed to delete slice. ';
+                
+                // Try to parse error response
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage += xhr.responseJSON.error;
+                } else if (xhr.responseText) {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        errorMessage += errorData.error || errorData.message || xhr.responseText;
+                    } catch (e) {
+                        errorMessage += xhr.responseText;
+                    }
+                } else {
+                    errorMessage += `Error ${xhr.status}: ${error}`;
+                }
+                
+                alert(errorMessage);
+                
+                // Restore button state
                 button.innerHTML = originalText;
                 button.disabled = false;
             });

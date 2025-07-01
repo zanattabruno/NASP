@@ -45,24 +45,20 @@ const Utils = {
      * Make HTTP request with error handling
      */
     makeRequest: function(method, url, data = null, timeout = CONFIG.API_TIMEOUT) {
-        return new Promise((resolve, reject) => {
-            const settings = {
-                url: url,
-                method: method,
-                timeout: timeout,
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            };
-
-            if (data) {
-                settings.data = JSON.stringify(data);
+        const settings = {
+            url: url,
+            method: method,
+            timeout: timeout,
+            headers: {
+                "Content-Type": "application/json"
             }
+        };
 
-            $.ajax(settings)
-                .done(resolve)
-                .fail(reject);
-        });
+        if (data) {
+            settings.data = JSON.stringify(data);
+        }
+
+        return $.ajax(settings);
     },
 
     /**

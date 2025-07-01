@@ -848,3 +848,91 @@ class NsmfService():
         except Exception as e:
             logging.error(f"Error clearing subscribers: {str(e)}")
             return False
+
+    def delete_nsi(self, request):
+        """Delete Network Slice Instance"""
+        try:
+            # Extract S_NSSAI from either URL path or request body
+            s_nssai = None
+            
+            # Try to get from Flask's g object (when passed via URL path)
+            try:
+                from flask import g
+                if hasattr(g, 'snssai'):
+                    s_nssai = g.snssai
+            except:
+                pass
+            
+            # Try to get from URL path (if passed as parameter)
+            if not s_nssai and hasattr(request, 'view_args') and request.view_args:
+                s_nssai = request.view_args.get('snssai')
+            
+            # Try to get from request JSON body
+            if not s_nssai and request.is_json:
+                s_nssai = request.json.get('s_nssai') or request.json.get('S_NSSAI')
+            
+            # Try to get from query parameters
+            if not s_nssai:
+                s_nssai = request.args.get('s_nssai') or request.args.get('S_NSSAI')
+            
+            if not s_nssai:
+                return {"error": "S_NSSAI parameter is required"}, 400
+            
+            logging.info(f"Attempting to delete NSI with S_NSSAI: {s_nssai}")
+            
+            # Load current NSI data
+            try:
+                with open("../data/db/nsi.json", "r", encoding="utf-8") as data_file:
+                    nsi_list = json.load(data_file)
+            except FileNotFoundError:
+                logging.warning("NSI data file not found")
+                return {"error": "NSI data not found"}, 404
+            except json.JSONDecodeError:
+                logging.error("Invalid JSON in NSI data file")
+                return {"error": "Invalid NSI data format"}, 500
+            
+            # Find and remove the NSI with matching S_NSSAI
+            original_count = len(nsi_list)
+            nsi_list = [nsi for nsi in nsi_list if nsi.get('S_NSSAI') != s_nssai]
+            
+            if len(nsi_list) == original_count:
+                logging.warning(f"NSI with S_NSSAI {s_nssai} not found")
+                return {"error": f"NSI with S_NSSAI {s_nssai} not found"}, 404
+            
+            # Save updated NSI list
+            with open("../data/db/nsi.json", "w", encoding="utf-8") as data_file:
+                json.dump(nsi_list, data_file, indent=2)
+            
+            # Clean up related resources (subscribers, etc.)
+            self._cleanup_nsi_resources(s_nssai)
+            
+            logging.info(f"Successfully deleted NSI with S_NSSAI: {s_nssai}")
+            return {"message": f"NSI {s_nssai} deleted successfully", "S_NSSAI": s_nssai}, 200
+            
+        except Exception as exception:
+            logging.error(f"Error deleting NSI: {str(exception)}")
+            return {"error": f"Failed to delete NSI: {str(exception)}"}, 500
+    
+    def _cleanup_nsi_resources(self, s_nssai):
+        """Clean up resources associated with a deleted NSI"""
+        try:
+            # Remove subscribers associated with this slice if MongoDB is available
+            if self.subscribers_collection:
+                # Parse S-NSSAI to get SST and SD
+                if len(s_nssai) >= 1:
+                    sst = int(s_nssai[0])
+                    sd = s_nssai[1:] if len(s_nssai) > 1 else None
+                    
+                    # Remove subscribers with matching slice configuration
+                    query = {"slice.0.sst": sst}
+                    if sd:
+                        query["slice.0.sd"] = sd
+                    
+                    result = self.subscribers_collection.delete_many(query)
+                    logging.info(f"Removed {result.deleted_count} subscribers for NSI {s_nssai}")
+            
+            # Additional cleanup can be added here (e.g., ONOS intents, K8s resources)
+            logging.info(f"Resource cleanup completed for NSI {s_nssai}")
+            
+        except Exception as e:
+            logging.warning(f"Error during resource cleanup for NSI {s_nssai}: {str(e)}")
