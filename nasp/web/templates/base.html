@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dropdown-fix.css') }}">
     {% block extra_css %}{% endblock %}
     
     <!-- Scripts -->
@@ -38,26 +39,26 @@
             <ul class="nav flex-column">
               {% if role == "operator" %}
               <li class="nav-item">
-                <a href="/?role={{ role }}" class="nav-link {{ 'active' if active == 'Templates' else '' }}">
+                <a href="/?role={{ role }}" class="nav-link {{ 'active' if active == 'Templates' else '' }}" data-page="templates">
                   <i class="bi bi-house me-2"></i>
                   Templates
                 </a>
               </li>
               {% endif %}
               <li class="nav-item">
-                <a href="/catalog?role={{ role }}" class="nav-link {{ 'active' if active == 'Catalog' else '' }}">
+                <a href="/catalog?role={{ role }}" class="nav-link {{ 'active' if active == 'Catalog' else '' }}" data-page="catalog">
                   <i class="bi bi-grid me-2"></i>
                   Slice Catalog
                 </a>
               </li>
               <li class="nav-item">
-                <a href="/nsi?role={{ role }}" class="nav-link {{ 'active' if active == 'Instances' else '' }}">
+                <a href="/nsi?role={{ role }}" class="nav-link {{ 'active' if active == 'Instances' else '' }}" data-page="instances">
                   <i class="bi bi-table me-2"></i>
                   {% if role == "tenant" %}My Slices{% else %}Instances{% endif %}
                 </a>
               </li>
               <li class="nav-item">
-                <a href="/dashboard-topology?role={{ role }}" class="nav-link {{ 'active' if active == 'Dashboard' else '' }}">
+                <a href="/dashboard-topology?role={{ role }}" class="nav-link {{ 'active' if active == 'Dashboard' else '' }}" data-page="dashboard">
                   <i class="bi bi-speedometer2 me-2"></i>
                   Dashboard
                 </a>

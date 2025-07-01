@@ -19,15 +19,101 @@
   background: var(--text-primary);
 }
 
-.btn-group .dropdown-menu {
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-medium);
-  border-radius: var(--border-radius);
+/* Clean button group layout - no dropdowns needed */
+.table tbody tr td .btn-group {
+  display: inline-flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 3px !important;
+  vertical-align: middle !important;
+  position: relative !important;
 }
 
-.dropdown-item:hover {
-  background: var(--background-secondary);
-  color: var(--text-primary);
+.table tbody tr td .btn-group .btn {
+  margin: 1px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Ensure table cell doesn't constrain buttons */
+.table tbody tr td:last-child {
+  width: auto !important;
+  min-width: 280px !important; /* Increased from 200px to accommodate more buttons */
+  white-space: nowrap !important;
+  overflow: visible !important;
+  position: relative;
+  padding: 12px 16px !important; /* Slightly more padding for button spacing */
+}
+
+/* Three dots icon specific styling */
+.table tbody tr td .btn-group .dropdown-toggle .bi-three-dots {
+  font-size: 14px !important;
+  color: inherit !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+
+/* Remove Bootstrap default caret */
+.table tbody tr td .btn-group .dropdown-toggle::after {
+  display: none !important;
+}
+
+/* Clean button styling for other action buttons */
+.table tbody tr td .btn-group .btn:not(.dropdown-toggle) {
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  border-radius: 4px !important;
+  margin-right: 2px !important;
+}
+
+.table tbody tr td .btn-group .btn:last-child:not(.dropdown-toggle) {
+  margin-right: 4px !important;
+}
+
+.dropdown-item {
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #212529;
+  display: flex;
+  align-items: center;
+  transition: all 0.15s ease;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: #f8f9fa;
+  color: #16181b;
+  text-decoration: none;
+}
+
+.dropdown-item.text-danger {
+  color: #dc3545;
+}
+
+.dropdown-item.text-danger:hover,
+.dropdown-item.text-danger:focus {
+  background-color: #f5c2c7;
+  color: #b02a37;
+}
+
+.dropdown-item i {
+  color: inherit;
+  width: 16px;
+  margin-right: 8px;
+  text-align: center;
+}
+
+.dropdown-divider {
+  height: 0;
+  margin: 4px 0;
+  overflow: hidden;
+  border-top: 1px solid #e9ecef;
 }
 
 /* Loading spinner for NSI operations */
@@ -39,4 +125,361 @@
     border-radius: 50%;
     border-top-color: var(--accent-color);
     animation: spin 1s linear infinite;
+}
+
+/* Fix table cell positioning for dropdowns */
+.table td {
+  position: relative;
+  vertical-align: middle;
+  padding: 12px 8px;
+}
+
+.table td:last-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Ensure proper button spacing and sizing */
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
+.btn-group .btn-sm {
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-right: 2px;
+}
+
+.btn-group .btn-sm:last-child {
+  margin-right: 0;
+}
+
+/* Action buttons specific styling */
+.btn-outline-info {
+  border-color: #17a2b8;
+  color: #17a2b8;
+}
+
+.btn-outline-info:hover {
+  background-color: #17a2b8;
+  border-color: #17a2b8;
+  color: white;
+}
+
+.btn-outline-warning {
+  border-color: #ffc107;
+  color: #856404;
+}
+
+.btn-outline-warning:hover {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #212529;
+}
+
+.btn-outline-secondary {
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--background-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Fix dropdown toggle arrow */
+.dropdown-toggle::after {
+  margin-left: 6px;
+  vertical-align: 0.1em;
+}
+
+/* Responsive adjustments for actions column */
+@media (max-width: 768px) {
+  .btn-group {
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .btn-group .btn {
+    width: 100%;
+    margin-bottom: 2px;
+  }
+  
+  .dropdown-menu {
+    position: static !important;
+    float: none;
+    width: 100%;
+    margin-top: 2px;
+    box-shadow: none;
+    border: 1px solid var(--border-color);
+  }
+}
+
+/* Enhanced table styling for NSI */
+.body-main-table {
+  position: relative;
+  overflow: visible !important;
+}
+
+.table-responsive {
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-small);
+  overflow-x: auto;
+  overflow-y: visible !important; /* Critical: Allow dropdowns to show */
+  position: relative;
+}
+
+.table {
+  margin-bottom: 0;
+  background: white;
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure table cells support dropdown positioning */
+.table tbody tr td:last-child {
+  width: auto !important;
+  min-width: 280px !important; /* Increased from 200px to accommodate more buttons */
+  white-space: nowrap !important;
+  overflow: visible !important;
+  position: relative;
+  padding: 12px 16px !important; /* Slightly more padding for button spacing */
+}
+
+.table thead th {
+  background: var(--background-secondary);
+  border-bottom: 2px solid var(--border-color);
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: 16px 12px;
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border-light);
+  transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background-color: var(--background-secondary);
+}
+
+.table tbody td {
+  padding: 16px 12px;
+  vertical-align: middle;
+  border-top: none;
+}
+
+/* Status badges styling */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-active {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.status-inactive {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+/* Avatar circle for names */
+.avatar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Bootstrap dropdown functionality preserved for other components */
+.dropdown-menu.show {
+  display: block !important;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.dropdown-menu:not(.show) {
+  display: none;
+}
+
+/* Dropdown divider styling */
+.table tbody tr td .btn-group .dropdown-divider {
+  height: 0 !important;
+  margin: 4px 0 !important;
+  overflow: hidden !important;
+  border-top: 1px solid #e9ecef !important;
+}
+
+/* Remove all conflicting btn-group styles */
+.btn-group .btn-sm {
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+  margin-right: 2px !important;
+}
+
+.btn-group .btn-sm:last-child {
+  margin-right: 0 !important;
+}
+
+/* Override any conflicting table styles */
+.table td {
+  position: relative !important;
+  vertical-align: middle !important;
+  padding: 12px 8px !important;
+}
+
+/* Simplified dropdown visibility rules */
+.table .dropdown-menu.show {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.table .dropdown-menu:not(.show) {
+  display: none !important;
+}
+
+/* Ensure sidebar dropdown functionality is preserved */
+.sidebar .dropdown-menu {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  transform: none !important;
+  z-index: 1050 !important;
+  min-width: 160px !important;
+  padding: 8px 0 !important;
+  margin: 2px 0 0 !important;
+  background-color: #fff !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+}
+
+.sidebar .dropdown-menu.show {
+  display: block !important;
+}
+
+.sidebar .dropdown-item {
+  display: block !important;
+  width: 100% !important;
+  padding: 8px 16px !important;
+  color: #212529 !important;
+  text-decoration: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  text-align: left !important;
+}
+
+.sidebar .dropdown-item:hover {
+  background-color: #f8f9fa !important;
+  color: #16181b !important;
+}
+
+/* Override any conflicting dropdown toggle styles for sidebar */
+.sidebar .dropdown-toggle:hover {
+  background-color: var(--background-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+.sidebar .dropdown-toggle::after {
+  float: right !important;
+  margin-top: 4px !important;
+  display: block !important;
+}
+
+/* Enhanced button group styling for individual action buttons */
+.table tbody tr td .btn-group {
+  display: inline-flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 3px !important;
+  vertical-align: middle !important;
+  position: relative !important;
+}
+
+/* Improved button sizing for action buttons */
+.table tbody tr td .btn-group .btn-sm {
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  border-radius: 3px !important;
+  min-width: 30px !important;
+  min-height: 26px !important;
+  margin: 1px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Specific styling for icon-only buttons */
+.table tbody tr td .btn-group .btn-sm i:only-child {
+  margin: 0 !important;
+  font-size: 12px !important;
+}
+
+/* Ensure buttons don't overflow on smaller screens */
+@media (max-width: 1200px) {
+  .table tbody tr td .btn-group {
+    flex-wrap: wrap !important;
+    gap: 2px !important;
+  }
+  
+  .table tbody tr td .btn-group .btn-sm {
+    padding: 3px 6px !important;
+    font-size: 10px !important;
+    min-width: 28px !important;
+    min-height: 24px !important;
+  }
+}
+
+/* Color coding for different action types */
+.table tbody tr td .btn-outline-info {
+  border-color: #17a2b8 !important;
+  color: #17a2b8 !important;
+}
+
+.table tbody tr td .btn-outline-info:hover {
+  background-color: #17a2b8 !important;
+  color: white !important;
+}
+
+.table tbody tr td .btn-outline-danger {
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+}
+
+.table tbody tr td .btn-outline-danger:hover {
+  background-color: #dc3545 !important;
+  color: white !important;
 }

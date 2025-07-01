@@ -360,6 +360,13 @@ const Catalog = {
 document.addEventListener('DOMContentLoaded', function() {
     if (document.body.classList.contains('catalog-page')) {
         Catalog.init();
+        
+        // Fix dropdown positioning issues on catalog page
+        setTimeout(() => {
+            if (window.cleanupDropdownPositioning) {
+                window.cleanupDropdownPositioning();
+            }
+        }, 200);
     }
 });
 

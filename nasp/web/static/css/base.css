@@ -1,29 +1,65 @@
 /* Minimalist Base Layout Styles */
 .sidebar {
-  background-color: var(--background-primary);
+  background: linear-gradient(180deg, var(--background-primary) 0%, #f8faff 100%);
   border-right: 1px solid var(--border-color);
   min-height: 100vh;
+  padding: 16px 12px;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar .nav {
+  gap: 4px;
+}
+
+.sidebar h4 {
+  color: var(--primary-color);
+  font-weight: 700;
+  margin-bottom: 24px;
+  padding: 0 8px;
+  font-size: 18px;
 }
 
 .nav-link {
   color: var(--text-secondary);
   padding: 12px 16px;
   font-size: 14px;
-  transition: var(--transition);
+  transition: all 0.3s ease;
   border-radius: var(--border-radius);
   margin: 2px 8px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
 }
 
-.nav-link:hover,
-.nav-link.active {
+.nav-link:hover {
   background-color: var(--background-secondary);
   color: var(--text-primary);
+  transform: translateX(2px);
 }
 
 .nav-link.active {
   background-color: var(--accent-color);
-  color: white;
-  font-weight: 500;
+  color: white !important;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
+  border-left: 3px solid rgba(255, 255, 255, 0.8);
+}
+
+.nav-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5));
+  border-radius: 0 2px 2px 0;
+}
+
+.nav-link.active:hover {
+  background-color: #3182ce;
+  transform: none;
 }
 
 .main-content {
@@ -97,4 +133,98 @@
 .log-level.error {
     background-color: #f8d7da;
     color: #721c24;
+}
+
+/* Enhanced dropdown styling for sidebar */
+.sidebar .dropdown {
+  margin-top: 16px;
+  padding: 12px 8px;
+  border-top: 1px solid var(--border-light);
+}
+
+.sidebar .dropdown-toggle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar .dropdown-toggle:hover {
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+}
+
+.sidebar .dropdown-toggle::after {
+  float: right;
+  margin-top: 4px;
+}
+
+/* Icon styling improvements */
+.nav-link i {
+  width: 18px;
+  text-align: center;
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.nav-link.active i {
+  color: white;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .sidebar {
+    min-height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .nav-link {
+    padding: 10px 12px;
+    margin: 1px 4px;
+  }
+}
+
+/* Ensure bootstrap nav-link styles don't interfere */
+.sidebar .nav-link {
+  border: none !important;
+  outline: none !important;
+}
+
+.sidebar .nav-link:focus {
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+  outline: none;
+}
+
+/* Additional active state enhancements */
+.sidebar .nav-item:has(.nav-link.active) {
+  position: relative;
+}
+
+.sidebar .nav-item:has(.nav-link.active)::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 20px;
+  background: var(--accent-color);
+  border-radius: 0 2px 2px 0;
+}
+
+/* Fix text color inheritance issues */
+.sidebar .nav-link.active * {
+  color: white !important;
+}
+
+/* Improve contrast for accessibility */
+@media (prefers-contrast: high) {
+  .nav-link.active {
+    background-color: #2b6cb0 !important;
+    border: 2px solid white;
+  }
 }

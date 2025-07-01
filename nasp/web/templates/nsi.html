@@ -185,9 +185,6 @@
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-modern btn-sm" onclick="viewSliceDetails('{{ case.S_NSSAI }}')">
-                                        <i class="bi bi-eye me-1"></i>Details
-                                    </button>
                                     {% if case.status == 'active' %}
                                     <button type="button" class="btn btn-outline-warning btn-sm" onclick="manageSlice('{{ case.S_NSSAI }}', 'stop')">
                                         <i class="bi bi-pause-circle me-1"></i>Stop
@@ -197,23 +194,16 @@
                                         <i class="bi bi-play-circle me-1"></i>Start
                                     </button>
                                     {% endif %}
-                                    <div class="dropdown">
-                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                            <i class="bi bi-three-dots"></i>
-                                        </button>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="#" onclick="exportSliceConfig('{{ case.S_NSSAI }}')">
-                                                <i class="bi bi-download me-2"></i>Export Config
-                                            </a></li>
-                                            <li><a class="dropdown-item" href="#" onclick="duplicateSlice('{{ case.S_NSSAI }}')">
-                                                <i class="bi bi-files me-2"></i>Duplicate
-                                            </a></li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><a class="dropdown-item text-danger" href="#" onclick="deleteSlice('{{ case.S_NSSAI }}')">
-                                                <i class="bi bi-trash me-2"></i>Delete
-                                            </a></li>
-                                        </ul>
-                                    </div>
+                                    <!-- Convert dropdown options to individual buttons -->
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="exportSliceConfig('{{ case.S_NSSAI }}')" title="Export Config">
+                                        <i class="bi bi-download"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="duplicateSlice('{{ case.S_NSSAI }}')" title="Duplicate">
+                                        <i class="bi bi-files"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteSlice('{{ case.S_NSSAI }}')" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>

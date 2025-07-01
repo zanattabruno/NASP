@@ -160,10 +160,96 @@ const Navigation = {
 };
 
 /**
+ * Enhanced menu highlighting functionality
+ */
+const MenuHighlighter = {
+    init: function() {
+        this.highlightCurrentPage();
+        this.addClickHandlers();
+    },
+
+    /**
+     * Ensure the current page menu item is highlighted
+     */
+    highlightCurrentPage: function() {
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.sidebar .nav-link');
+        
+        // Remove any existing active classes
+        navLinks.forEach(link => link.classList.remove('active'));
+        
+        // Add active class based on current path
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href && this.matchesCurrentPath(href, currentPath)) {
+                link.classList.add('active');
+            }
+        });
+    },
+
+    /**
+     * Check if the href matches the current path
+     */
+    matchesCurrentPath: function(href, currentPath) {
+        // Remove query parameters for comparison
+        const linkPath = href.split('?')[0];
+        
+        // Handle root path
+        if (currentPath === '/' && linkPath === '/') {
+            return true;
+        }
+        
+        // Handle other paths
+        if (currentPath.includes('/nsi') && linkPath.includes('/nsi')) {
+            return true;
+        }
+        if (currentPath.includes('/catalog') && linkPath.includes('/catalog')) {
+            return true;
+        }
+        if (currentPath.includes('/dashboard') && linkPath.includes('/dashboard')) {
+            return true;
+        }
+        
+        return false;
+    },
+
+    /**
+     * Add click handlers for smooth navigation
+     */
+    addClickHandlers: function() {
+        const navLinks = document.querySelectorAll('.sidebar .nav-link');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Add loading state
+                this.style.opacity = '0.7';
+                setTimeout(() => {
+                    this.style.opacity = '1';
+                }, 200);
+            });
+        });
+    }
+};
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    MenuHighlighter.init();
+});
+
+/**
  * Initialize common functionality when DOM is ready
  */
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Base utilities loaded');
+    
+    // CRITICAL FIX: Clean up dropdown positioning issues globally
+    setTimeout(() => {
+        if (window.cleanupDropdownPositioning) {
+            window.cleanupDropdownPositioning();
+        }
+        if (window.initDropdownWatcher) {
+            window.initDropdownWatcher();
+        }
+    }, 100);
     
     // Add smooth transitions to interactive elements
     const rows = document.querySelectorAll('table tbody tr');
@@ -180,6 +266,89 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize navigation when DOM is ready
     Navigation.init();
 });
+
+/**
+ * Global function to fix dropdown positioning issues
+ */
+window.cleanupDropdownPositioning = function() {
+    // Remove any problematic inline styles from all dropdown menus
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        // Only fix table dropdowns, preserve sidebar dropdowns
+        if (menu.closest('.table')) {
+            menu.removeAttribute('style');
+            menu.style.position = 'absolute';
+            menu.style.transform = 'none';
+            menu.style.inset = 'auto';
+            menu.style.top = '100%';
+            menu.style.right = '0';
+            menu.style.left = 'auto';
+            menu.style.zIndex = '1060';
+        }
+    });
+    
+    // Fix any Bootstrap popper positioning data
+    document.querySelectorAll('[data-popper-placement]').forEach(element => {
+        if (element.closest('.table')) {
+            element.removeAttribute('data-popper-placement');
+        }
+    });
+    
+    console.log('Dropdown positioning cleanup completed');
+};
+
+/**
+ * Watch for dynamically created dropdown menus and fix them
+ */
+window.initDropdownWatcher = function() {
+    if (window.dropdownObserver) {
+        return; // Already initialized
+    }
+    
+    window.dropdownObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Check if the added node is a dropdown menu or contains one
+                        const dropdownMenus = node.classList && node.classList.contains('dropdown-menu') 
+                            ? [node] 
+                            : node.querySelectorAll ? node.querySelectorAll('.dropdown-menu') : [];
+                        
+                        dropdownMenus.forEach(menu => {
+                            if (menu.closest('.table')) {
+                                setTimeout(() => {
+                                    menu.removeAttribute('style');
+                                    menu.style.position = 'absolute';
+                                    menu.style.transform = 'none';
+                                    menu.style.inset = 'auto';
+                                }, 10);
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // Also check for attribute changes that might affect positioning
+            if (mutation.type === 'attributes' && 
+                mutation.target.classList.contains('dropdown-menu') && 
+                mutation.target.closest('.table')) {
+                setTimeout(() => {
+                    const menu = mutation.target;
+                    menu.style.position = 'absolute';
+                    menu.style.transform = 'none';
+                    menu.style.inset = 'auto';
+                }, 10);
+            }
+        });
+    });
+    
+    window.dropdownObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'data-popper-placement']
+    });
+};
 
 // Export to global scope for backward compatibility
 window.Utils = Utils;

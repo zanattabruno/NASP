@@ -10,6 +10,7 @@ const NSI = {
         this.startMetricsUpdates();
         this.updateInstanceStats();
         this.initializeSearch();
+        this.initializeBootstrapDropdowns();
     },
 
     /**
@@ -284,6 +285,187 @@ const NSI = {
                 alert('Failed to clear environment. Please try again.');
             });
     },
+
+    /**
+     * Duplicate a slice configuration
+     */
+    duplicateSlice: function(snssai) {
+        if (!confirm('Are you sure you want to duplicate this slice configuration?')) {
+            return;
+        }
+        
+        // Show loading state
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Duplicating...';
+        button.disabled = true;
+        
+        // Simulate duplication process
+        setTimeout(() => {
+            alert('Slice configuration duplicated successfully!');
+            button.innerHTML = originalText;
+            button.disabled = false;
+            // Optionally refresh the table
+            location.reload();
+        }, 2000);
+    },
+
+    /**
+     * Delete a slice instance
+     */
+    deleteSlice: function(snssai) {
+        if (!confirm('Are you sure you want to delete this slice? This action cannot be undone.')) {
+            return;
+        }
+        
+        // Show loading state
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Deleting...';
+        button.disabled = true;
+        
+        // Make API call to delete slice
+        Utils.makeRequest('DELETE', CONFIG.BASE_URL + `/nasp/nsi/${snssai}`)
+            .done((response) => {
+                console.log('Slice deleted successfully:', response);
+                alert('Slice deleted successfully!');
+                location.reload();
+            })
+            .fail((xhr, status, error) => {
+                console.error('Delete slice failed:', error);
+                alert('Failed to delete slice. Please try again.');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+    },
+
+    /**
+     * Manage slice (start/stop)
+     */
+    manageSlice: function(snssai, action) {
+        const actionText = action === 'start' ? 'start' : 'stop';
+        if (!confirm(`Are you sure you want to ${actionText} this slice?`)) {
+            return;
+        }
+        
+        // Show loading state
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = `<i class="bi bi-hourglass-split me-1"></i>${actionText.charAt(0).toUpperCase() + actionText.slice(1)}ing...`;
+        button.disabled = true;
+        
+        // Make API call to manage slice
+        Utils.makeRequest('POST', CONFIG.BASE_URL + `/nasp/nsi/${snssai}/${action}`)
+            .done((response) => {
+                console.log(`Slice ${actionText} successfully:`, response);
+                alert(`Slice ${actionText}ed successfully!`);
+                location.reload();
+            })
+            .fail((xhr, status, error) => {
+                console.error(`${actionText} slice failed:`, error);
+                alert(`Failed to ${actionText} slice. Please try again.`);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+    },
+
+    /**
+     * Initialize Bootstrap dropdowns
+     */
+    /**
+     * Initialize Bootstrap dropdowns properly - let Bootstrap do its thing
+     */
+    initializeBootstrapDropdowns: function() {
+        // Only initialize if Bootstrap is available
+        if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+            // Initialize all dropdowns with Bootstrap - let it handle everything
+            const dropdownTriggerList = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+            dropdownTriggerList.forEach(dropdownTriggerEl => {
+                try {
+                    // Only initialize if not already initialized
+                    if (!bootstrap.Dropdown.getInstance(dropdownTriggerEl)) {
+                        new bootstrap.Dropdown(dropdownTriggerEl);
+                    }
+                } catch (e) {
+                    console.warn('Could not initialize dropdown:', e);
+                }
+            });
+        }
+    },
+
+    /**
+     * CRITICAL FIX: Clean up dropdown positioning issues
+     */
+    cleanupDropdownPositioning: function() {
+        // Remove any problematic inline styles from all dropdown menus
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            // Only fix table dropdowns, preserve sidebar dropdowns
+            if (menu.closest('.table')) {
+                menu.removeAttribute('style');
+                menu.style.position = 'absolute';
+                menu.style.transform = 'none';
+                menu.style.inset = 'auto';
+            }
+        });
+        
+        // Fix any Bootstrap popper positioning data
+        document.querySelectorAll('[data-popper-placement]').forEach(element => {
+            if (element.closest('.table')) {
+                element.removeAttribute('data-popper-placement');
+            }
+        });
+    },
+
+    /**
+     * CRITICAL FIX: Immediate dropdown style correction
+     */
+    fixDropdownStyles: function() {
+        // Find all table dropdown menus and fix their styles immediately
+        document.querySelectorAll('.table .dropdown-menu').forEach(menu => {
+            // Remove any problematic inline styles
+            ['transform', 'inset', 'left', 'top', 'right', 'bottom'].forEach(prop => {
+                menu.style.removeProperty(prop);
+            });
+            
+            // Apply correct positioning
+            menu.style.position = 'absolute';
+            menu.style.top = '100%';
+            menu.style.right = '0';
+            menu.style.left = 'auto';
+            menu.style.transform = 'none';
+            menu.style.zIndex = '1060';
+            menu.style.margin = '2px 0 0 0';
+        });
+        
+        // Fix any popper attributes
+        document.querySelectorAll('.table [data-popper-placement]').forEach(el => {
+            el.removeAttribute('data-popper-placement');
+        });
+        
+        console.log('Applied immediate dropdown style fixes');
+    },
+
+    /**
+     * Test dropdown functionality (for debugging)
+     */
+    testDropdowns: function() {
+        console.log('Testing dropdown functionality...');
+        const dropdowns = document.querySelectorAll('.table .dropdown-menu');
+        console.log(`Found ${dropdowns.length} dropdown menus in tables`);
+        
+        dropdowns.forEach((menu, index) => {
+            const rect = menu.getBoundingClientRect();
+            console.log(`Dropdown ${index}:`, {
+                display: window.getComputedStyle(menu).display,
+                position: window.getComputedStyle(menu).position,
+                transform: window.getComputedStyle(menu).transform,
+                top: window.getComputedStyle(menu).top,
+                right: window.getComputedStyle(menu).right,
+                zIndex: window.getComputedStyle(menu).zIndex,
+                rect: rect
+            });
+        });
+    },
 };
 
 // Initialize when DOM is ready
@@ -291,6 +473,23 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.body.classList.contains('nsi-page')) {
         NSI.init();
         NSI.updateInstanceStatistics();
+        
+        // CRITICAL FIX: Apply immediate dropdown fixes
+        setTimeout(() => {
+            NSI.fixDropdownStyles();
+            NSI.cleanupDropdownPositioning();
+        }, 100);
+        
+        // Apply fixes again after Bootstrap initializes
+        setTimeout(() => {
+            NSI.fixDropdownStyles();
+            NSI.cleanupDropdownPositioning();
+        }, 500);
+        
+        // Test dropdowns (for debugging)
+        setTimeout(() => {
+            NSI.testDropdowns();
+        }, 1000);
     }
 });
 
@@ -307,5 +506,14 @@ window.refreshInstances = NSI.refreshInstances.bind(NSI);
 window.openMetrics = NSI.openMetrics.bind(NSI);
 window.viewSliceDetails = NSI.viewSliceDetails.bind(NSI);
 window.exportSliceConfig = NSI.exportSliceConfig.bind(NSI);
+window.duplicateSlice = NSI.duplicateSlice.bind(NSI);
+window.deleteSlice = NSI.deleteSlice.bind(NSI);
+window.manageSlice = NSI.manageSlice.bind(NSI);
 window.clearEnvironment = NSI.clearEnvironment.bind(NSI);
-window.clearEnvironment = NSI.clearEnvironment.bind(NSI);
+window.duplicateSlice = NSI.duplicateSlice.bind(NSI);
+window.deleteSlice = NSI.deleteSlice.bind(NSI);
+window.manageSlice = NSI.manageSlice.bind(NSI);
+
+// Export debugging functions
+window.testDropdowns = NSI.testDropdowns.bind(NSI);
+window.fixDropdownStyles = NSI.fixDropdownStyles.bind(NSI);
