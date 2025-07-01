@@ -12,7 +12,6 @@ const Catalog = {
         this.updateStatistics();
         this.initializeSearch();
         this.bindEventListeners();
-        this.setupEmergencyHandlers();
     },
 
     /**
@@ -251,58 +250,6 @@ const Catalog = {
     },
 
     /**
-     * Check server status
-     */
-    checkServerStatus: function() {
-        const statusButton = event.target;
-        const originalText = statusButton.innerHTML;
-        Utils.showLoading(statusButton, 'Checking...');
-        
-        Utils.makeRequest('GET', CONFIG.BASE_URL + '/', null, 3000)
-            .done((response) => {
-                console.log("Server is running:", response);
-                alert("✅ Server is running and accessible");
-            })
-            .fail((xhr, status, error) => {
-                console.error("Server check failed:", status, error);
-                if (status === 'timeout') {
-                    alert("⚠️ Server connection timed out. The server may be slow or not responding.");
-                } else {
-                    alert("❌ Server is not accessible. Please start the Flask server.");
-                }
-            })
-            .always(() => {
-                Utils.hideLoading(statusButton, originalText);
-            });
-    },
-
-    /**
-     * Emergency unfreeze function
-     */
-    emergencyUnfreeze: function() {
-        console.log("EMERGENCY UNFREEZE ACTIVATED");
-        
-        this.deploymentInProgress = false;
-        
-        // Re-enable all deploy buttons
-        document.querySelectorAll('[id^="deploy-btn-"]').forEach(btn => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-play-circle me-1"></i>Deploy Now';
-        });
-        
-        // Reset all modals
-        document.querySelectorAll('[id^="deployModal"]').forEach(modal => {
-            modal.style.pointerEvents = 'auto';
-            modal.style.opacity = '1';
-        });
-        
-        // Remove any status messages
-        document.querySelectorAll('[id^="deployment-status-"]').forEach(div => div.remove());
-        
-        alert("Emergency reset completed. All deployment states have been cleared.");
-    },
-
-    /**
      * Bind event listeners
      */
     bindEventListeners: function() {
@@ -322,36 +269,6 @@ const Catalog = {
                 const status = item.getAttribute('data-filter');
                 this.filterByStatus(status);
             });
-        });
-
-        // Bind emergency reset button
-        const emergencyBtn = document.getElementById('emergency-reset-btn');
-        if (emergencyBtn) {
-            emergencyBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.emergencyUnfreeze();
-            });
-        }
-
-        // Bind server status button
-        const serverStatusBtn = document.getElementById('server-status-btn');
-        if (serverStatusBtn) {
-            serverStatusBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.checkServerStatus();
-            });
-        }
-    },
-
-    /**
-     * Setup emergency handlers
-     */
-    setupEmergencyHandlers: function() {
-        // Keyboard shortcut for emergency unfreeze
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.altKey && e.key === 'u') {
-                this.emergencyUnfreeze();
-            }
         });
     }
 };
@@ -373,5 +290,3 @@ document.addEventListener('DOMContentLoaded', function() {
 // Export to global scope
 window.Catalog = Catalog;
 window.deploySliceFromTemplate = Catalog.deploySliceFromTemplate.bind(Catalog);
-window.checkServerStatus = Catalog.checkServerStatus.bind(Catalog);
-window.emergencyUnfreeze = Catalog.emergencyUnfreeze.bind(Catalog);
