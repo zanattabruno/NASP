@@ -3,96 +3,50 @@ import logging
 import time
 import json
 import requests
-import time
 import random
 import subprocess
-from pymongo import MongoClient
+from pathlib import Path
+
+
+SERVICE_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SERVICE_DIR.parents[2]
 
 
 class NsmfService():
     """Nsmf Service Class"""
     
-    # MongoDB Configuration
-    MONGO_CONFIG = {
-        "host": "192.168.86.40",  # Kubernetes service
-        "port": 27017,
-        "database": "open5gs",
-        "collection": "subscribers",
-        # Fallback to localhost for local development
-        "fallback_host": "localhost"
+    OPEN5GS_TARGET = {
+        "name": os.getenv("OPEN5GS_INSTANCE_NAME", "open5gs-sample"),
+        "namespace": os.getenv("OPEN5GS_NAMESPACE", "default")
+    }
+
+    MANIFEST_PATHS = {
+        "stack": REPO_ROOT / "k8s-manifests" / "open5gs-one-slice.yaml",
+        "generated": REPO_ROOT / "k8s-manifests" / "generated"
     }
     
     # rApp Configuration
     RAPP_CONFIG = {
-        "base_url": "http://10.107.249.103",
+        "base_url": os.getenv("RAPP_BASE_URL"),
         "endpoints": {
-            "create_slice_policy": "/create_slice_policy"
+            "create_slice_policy": os.getenv("RAPP_CREATE_SLICE_ENDPOINT", "/create_slice_policy")
         }
     }
     
     def __init__(self):
-        """Initialize MongoDB connection"""
-        self.mongo_client = None
-        self.mongo_db = None
-        self.subscribers_collection = None
-        self._init_mongo_connection()
+        """Initialize helper paths for manifest management"""
+        self.generated_manifest_dir = self.MANIFEST_PATHS["generated"]
+        self.generated_manifest_dir.mkdir(parents=True, exist_ok=True)
     
-    def _init_mongo_connection(self):
-        """Initialize MongoDB connection with fallback options"""
-        connection_attempts = [
-            {
-                "host": self.MONGO_CONFIG["host"],
-                "port": self.MONGO_CONFIG["port"],
-                "desc": "Kubernetes service"
-            },
-            {
-                "host": self.MONGO_CONFIG.get("fallback_host", "localhost"),
-                "port": self.MONGO_CONFIG["port"],
-                "desc": "localhost fallback"
-            }
-        ]
-        
-        for attempt in connection_attempts:
-            try:
-                logging.info(f"Attempting MongoDB connection to {attempt['desc']}: {attempt['host']}:{attempt['port']}")
-                
-                # Create MongoDB client with shorter timeout for faster fallback
-                self.mongo_client = MongoClient(
-                    host=attempt["host"],
-                    port=attempt["port"],
-                    serverSelectionTimeoutMS=5000,  # 5 second timeout
-                    connectTimeoutMS=5000
-                )
-                
-                # Get database and collection
-                self.mongo_db = self.mongo_client[self.MONGO_CONFIG["database"]]
-                self.subscribers_collection = self.mongo_db[self.MONGO_CONFIG["collection"]]
-                
-                # Test connection
-                self.mongo_client.admin.command('ping')
-                logging.info(f"MongoDB connection established successfully to {attempt['desc']}")
-                return
-                
-            except Exception as e:
-                logging.warning(f"Failed to connect to MongoDB at {attempt['desc']}: {str(e)}")
-                if self.mongo_client:
-                    self.mongo_client.close()
-                    self.mongo_client = None
-                continue
-        
-        # All connection attempts failed
-        logging.error("All MongoDB connection attempts failed")
-        self.mongo_client = None
-        self.mongo_db = None
-        self.subscribers_collection = None
-
     def allocNsi(self, req):
         """Get All NSSTs Core"""
         try:
             logging.info("allocNSI")
             
-            # Generate S_NSSAI first
-            S_NSSAI = "1"+f"2744{int(random.random()*100)}"
+            # Prefer S-NSSAI requested on the frontend; fallback to generated value
+            S_NSSAI = self._extract_requested_snssai(req.json)
+            if not S_NSSAI:
+                S_NSSAI = "1" + f"2744{int(random.random() * 100)}"
             logging.info(f"S_NSSAI Selected = {S_NSSAI}")
             
             # Process IMSI Range data
@@ -104,30 +58,28 @@ class NsmfService():
             if auth_config:
                 logging.info(f"Processing authentication config: {auth_config.get('method', 'auto')}")
             
+            manifest_path = None
             if imsi_range:
                 logging.info(f"Processing IMSI Range: {imsi_range}")
                 imsi_data = self.process_imsi_range(imsi_range)
                 logging.info(f"IMSI Data processed: {imsi_data}")
                 
-                # Create subscribers in MongoDB based on IMSI range
                 if imsi_data.get("valid", False):
-                    logging.info("Creating subscribers in MongoDB")
-                    # Create complete NSI data for slice extraction
-                    nsi_data_for_subscribers = {
+                    logging.info("Preparing Open5GS manifests for subscriber provisioning")
+                    nsi_data_for_manifest = {
                         "S_NSSAI": S_NSSAI,
                         "imsi_data": imsi_data,
                         "auth_config": auth_config,
                         "description": req.json.get("description", {}),
                         "resource_description": req.json.get("resource_description", {})
                     }
-                    
-                    success = self.create_subscribers_from_nsi_data(nsi_data_for_subscribers)
-                    if success:
-                        logging.info("Subscribers created successfully in MongoDB")
+                    manifest_path = self.apply_open5gs_manifests(nsi_data_for_manifest)
+                    if manifest_path:
+                        logging.info("Open5GS user manifests applied successfully")
                     else:
-                        logging.error("Failed to create subscribers in MongoDB")
+                        logging.error("Failed to apply Open5GS user manifests")
                 else:
-                    logging.error("Invalid IMSI data, skipping subscriber creation")
+                    logging.error("Invalid IMSI data, skipping manifest application")
             
             # Include IMSI data in the stored information
             data = {
@@ -135,12 +87,20 @@ class NsmfService():
                 "description": req.json["description"], 
                 "S_NSSAI": S_NSSAI,
                 "imsi_range": imsi_range,
-                "imsi_data": imsi_data
+                "imsi_data": imsi_data,
+                "k8s_resources": {
+                    "open5gs_stack": str(self.MANIFEST_PATHS["stack"]),
+                    "open5gs_users_manifest": str(manifest_path) if manifest_path else None,
+                    "label_selector": f"nasp.slice={S_NSSAI}"
+                }
             }
             
             logging.info(data)
-            # Added url to post data to rAppNASP
-            rapp_url = f"{self.RAPP_CONFIG['base_url']}{self.RAPP_CONFIG['endpoints']['create_slice_policy']}"
+            # Added url to post data to rAppNASP when configured
+            rapp_url = None
+            base_url = self.RAPP_CONFIG.get("base_url")
+            if base_url:
+                rapp_url = f"{base_url}{self.RAPP_CONFIG['endpoints']['create_slice_policy']}"
             self.add_to_db(data, "nsi", rapp_url)
             # Note: Helm deployment functionality has been removed
             return f"Alloc Completed with success", 200
@@ -174,13 +134,15 @@ class NsmfService():
             return f"Bad Request - {exception}", 400
 
     def post_data(self, data, url):
+        if not url:
+            return
         try:
             response = requests.post(url, json=data)
             response.raise_for_status()
         except Exception as exception:
-            print(str(exception))
+            logging.warning(f"Failed to POST data to rApp endpoint {url}: {exception}")
 
-    def add_to_db(self, data, table, url):
+    def add_to_db(self, data, table, url=None):
         try:
             with open(f"../data/db/{table}.json", encoding="utf-8") as db_data:
                 try:
@@ -194,6 +156,195 @@ class NsmfService():
             self.post_data(data, url)
         except Exception as exception:
             print(str(exception))
+
+    def apply_open5gs_manifests(self, nsi_payload):
+        """Apply Open5GS base stack and user manifests derived from NSI payload"""
+        try:
+            self._apply_open5gs_stack()
+            manifest_path = self._render_and_apply_open5gs_users(nsi_payload)
+            return str(manifest_path) if manifest_path else None
+        except Exception as exception:
+            logging.error(f"Failed to apply Open5GS manifests: {str(exception)}")
+            return None
+
+    def _apply_open5gs_stack(self):
+        stack_path = self.MANIFEST_PATHS["stack"]
+        if not stack_path.exists():
+            logging.warning(f"Open5GS stack manifest not found at {stack_path}")
+            return False
+        logging.info(f"Applying Open5GS stack manifest: {stack_path}")
+        return self._kubectl_apply(stack_path)
+
+    def _render_and_apply_open5gs_users(self, nsi_payload):
+        resources = self._prepare_open5gs_user_resources(nsi_payload)
+        if not resources:
+            logging.warning("No Open5GS user resources generated from NSI data")
+            return None
+        manifest_path = self._create_user_manifest_file(resources)
+        if not manifest_path:
+            return None
+        logging.info(f"Applying generated Open5GS users manifest: {manifest_path}")
+        if self._kubectl_apply(manifest_path):
+            return manifest_path
+        return None
+
+    def _prepare_open5gs_user_resources(self, nsi_payload):
+        imsi_data = nsi_payload.get("imsi_data", {})
+        if not imsi_data.get("valid", False):
+            return []
+        slice_configs = self.extract_slice_config_from_nsi(nsi_payload) or []
+        slice_config = slice_configs[0] if slice_configs else {"sst": 1, "sd": "111111"}
+        apn = self._extract_default_apn(nsi_payload)
+        auth_config = nsi_payload.get("auth_config")
+        start_imsi = int(imsi_data["start"])
+        end_imsi = int(imsi_data["end"])
+        resources = []
+        for imsi_num in range(start_imsi, end_imsi + 1):
+            imsi = str(imsi_num).zfill(15)
+            if auth_config:
+                k, opc = self._process_authentication_keys(imsi, auth_config)
+            else:
+                k = self._generate_security_key()
+                opc = self._generate_opc_key()
+            resource = {
+                "apiVersion": "net.gradiant.org/v1",
+                "kind": "Open5GSUser",
+                "metadata": {
+                    "name": f"nasp-user-{imsi}",
+                    "labels": {
+                        "app.kubernetes.io/name": "open5gs-operator",
+                        "app.kubernetes.io/managed-by": "nasp",
+                        "nasp.slice": nsi_payload.get("S_NSSAI", "unknown"),
+                        "nasp.imsi": imsi
+                    }
+                },
+                "spec": {
+                    "imsi": imsi,
+                    "key": k,
+                    "opc": opc,
+                    "sd": self._normalize_sd_value(slice_config.get("sd")),
+                    "sst": str(slice_config.get("sst", 1)),
+                    "apn": apn,
+                    "open5gs": {
+                        "name": self.OPEN5GS_TARGET["name"],
+                        "namespace": self.OPEN5GS_TARGET["namespace"]
+                    }
+                }
+            }
+            resources.append(resource)
+        return resources
+
+    def _extract_default_apn(self, nsi_payload):
+        try:
+            core_nfs = nsi_payload.get("resource_description", {}).get("core", {}).get("nfs", [])
+            for nf in core_nfs:
+                config = nf.get("config", {})
+                dnn_list = config.get("supportDnnList") or []
+                if dnn_list:
+                    return dnn_list[0]
+        except Exception:
+            pass
+        return "internet"
+
+    def _normalize_sd_value(self, sd_value):
+        if sd_value is None:
+            return "111111"
+        sd_str = str(sd_value)
+        if sd_str.startswith("0x") or sd_str.startswith("0X"):
+            return sd_str[2:]
+        return sd_str
+
+    def _extract_requested_snssai(self, payload):
+        """Return concatenated SST/SD from the frontend request when available"""
+        try:
+            description = payload.get("description") or {}
+            resource_desc = description.get("resource_description") or {}
+            core_nfs = resource_desc.get("core", {}).get("nfs", [])
+            for nf in core_nfs:
+                config = nf.get("config", {})
+                plmn_support = config.get("plmnSupportList") or []
+                for plmn in plmn_support:
+                    for snssai in plmn.get("snssaiList", []):
+                        sst = snssai.get("sst")
+                        sd = snssai.get("sd")
+                        if sst is None or sd is None:
+                            continue
+                        sd_norm = self._normalize_sd_value(sd)
+                        return f"{int(sst)}{sd_norm}"
+        except Exception as exc:
+            logging.warning(f"Failed to extract requested S-NSSAI from payload: {exc}")
+        return None
+
+    def _create_user_manifest_file(self, resources):
+        if not resources:
+            return None
+        manifest = {
+            "apiVersion": "v1",
+            "kind": "List",
+            "items": resources
+        }
+        timestamp = int(time.time() * 1000)
+        manifest_path = self.generated_manifest_dir / f"open5gs-users-{timestamp}.json"
+        with open(manifest_path, "w", encoding="utf-8") as manifest_file:
+            json.dump(manifest, manifest_file, indent=2)
+        return manifest_path
+
+    def _run_kubectl(self, args, input_data=None):
+        cmd = ["kubectl"] + [str(arg) for arg in args]
+        logging.info("Executing command: %s", " ".join(cmd))
+        try:
+            result = subprocess.run(
+                cmd,
+                input=input_data,
+                text=True,
+                capture_output=True,
+                check=True
+            )
+            stdout = result.stdout.strip()
+            stderr = result.stderr.strip()
+            if stdout:
+                logging.info(stdout)
+            if stderr:
+                logging.debug(stderr)
+            return True, result.stdout
+        except FileNotFoundError:
+            logging.error("kubectl not found. Ensure it is installed and available in the system PATH.")
+        except subprocess.CalledProcessError as exc:
+            stderr = (exc.stderr or "").strip()
+            stdout = (exc.stdout or "").strip()
+            if stdout:
+                logging.error(stdout)
+            if stderr:
+                logging.error(stderr)
+        return False, ""
+
+    def _kubectl_apply(self, manifest_path):
+        manifest_str = str(manifest_path)
+        if not os.path.exists(manifest_str):
+            logging.error(f"Manifest file not found: {manifest_str}")
+            return False
+        success, _ = self._run_kubectl(["apply", "-f", manifest_str])
+        return success
+
+    def _delete_open5gs_user(self, imsi):
+        resource_name = f"nasp-user-{imsi}"
+        success, _ = self._run_kubectl([
+            "delete",
+            "open5gsuser",
+            resource_name,
+            "--ignore-not-found"
+        ])
+        return success
+
+    def _delete_open5gs_users_by_label(self, label_selector):
+        success, _ = self._run_kubectl([
+            "delete",
+            "open5gsusers",
+            "-l",
+            label_selector,
+            "--ignore-not-found"
+        ])
+        return success
 
     def deploy_transport_network(self, low_latency=True):
         intents = []
@@ -238,7 +389,7 @@ class NsmfService():
     def clear_environment(self):
         self.delete_delay()
         self.delete_onos_intents()
-        self.clear_all_subscribers()  # Clear subscribers from MongoDB
+        self._delete_open5gs_users_by_label("app.kubernetes.io/managed-by=nasp")
         try:
             open("../data/db/nsi.json", "w", encoding="utf-8").write("[]")
             return f"Environment Cleared", 200
@@ -397,76 +548,6 @@ class NsmfService():
                 "error": str(e)
             }
 
-    def create_subscriber_document(self, imsi, slice_configs=None, auth_config=None):
-        """Create a subscriber document for MongoDB"""
-        try:
-            # Generate or use provided security keys based on auth_config
-            if auth_config:
-                k, opc = self._process_authentication_keys(imsi, auth_config)
-            else:
-                # Default: generate random keys
-                k = self._generate_security_key()
-                opc = self._generate_opc_key()
-            
-            logging.info(f"Generated/assigned keys for IMSI {imsi}: K={k[:8]}..., OPc={opc[:8]}...")
-            
-            # Default slice configuration if none provided
-            if not slice_configs:
-                slice_configs = [{
-                    "sst": 1,
-                    "sd": "123456",
-                    "default_indicator": True,
-                    "session": [{
-                        "name": "oranbr",
-                        "type": 3,
-                        "qos": {
-                            "index": 9,
-                            "arp": {
-                                "priority_level": 8,
-                                "pre_emption_capability": 1,
-                                "pre_emption_vulnerability": 2
-                            }
-                        },
-                        "ambr": {
-                            "downlink": {"value": 1000000000, "unit": 0},
-                            "uplink": {"value": 1000000000, "unit": 0}
-                        },
-                        "pcc_rule": []
-                    }]
-                }]
-            
-            subscriber_doc = {
-                "schema_version": 1,
-                "imsi": imsi,
-                "msisdn": [],
-                "imeisv": self._generate_imeisv(),
-                "mme_host": [],
-                "mm_realm": [],
-                "purge_flag": [],
-                "slice": slice_configs,
-                "security": {
-                    "k": k,
-                    "op": None,
-                    "opc": opc,
-                    "amf": "8000",
-                    "sqn": 0
-                },
-                "ambr": {
-                    "downlink": {"value": 1000000000, "unit": 0},
-                    "uplink": {"value": 1000000000, "unit": 0}
-                },
-                "access_restriction_data": 32,
-                "network_access_mode": 0,
-                "subscribed_rau_tau_timer": 12,
-                "__v": 0
-            }
-            
-            return subscriber_doc
-            
-        except Exception as e:
-            logging.error(f"Error creating subscriber document: {str(e)}")
-            return None
-
     def _process_authentication_keys(self, imsi, auth_config):
         """Process authentication keys based on configuration"""
         method = auth_config.get('method', 'auto')
@@ -551,84 +632,6 @@ class NsmfService():
         data = f"{mcc_mnc}{base_key}{operator_salt}_{imsi}".encode('utf-8')
         hash_obj = hashlib.sha256(data)
         return hash_obj.hexdigest()[:32].upper()
-
-    def create_subscribers_from_imsi_range(self, imsi_data, slice_configs=None, auth_config=None):
-        """Create subscribers in MongoDB from IMSI range data"""
-        try:
-            if self.subscribers_collection is None:
-                logging.error("MongoDB connection not available")
-                return False
-                
-            if not imsi_data.get("valid", False):
-                logging.error("Invalid IMSI data provided")
-                return False
-            
-            start_imsi = int(imsi_data["start"])
-            end_imsi = int(imsi_data["end"])
-            created_count = 0
-            
-            logging.info(f"Creating subscribers for IMSI range: {imsi_data['start']} to {imsi_data['end']}")
-            if auth_config:
-                logging.info(f"Using authentication method: {auth_config.get('method', 'auto')}")
-            
-            # Create subscribers for each IMSI in the range
-            for imsi_num in range(start_imsi, end_imsi + 1):
-                imsi = str(imsi_num).zfill(15)  # Ensure 15 digits
-                
-                # Check if subscriber already exists
-                if self.subscribers_collection.find_one({"imsi": imsi}):
-                    logging.info(f"Subscriber with IMSI {imsi} already exists, skipping")
-                    continue
-                
-                # Create subscriber document with slice configs and auth config
-                subscriber_doc = self.create_subscriber_document(imsi, slice_configs, auth_config)
-                
-                if subscriber_doc:
-                    try:
-                        # Insert into MongoDB
-                        result = self.subscribers_collection.insert_one(subscriber_doc)
-                        if result.inserted_id:
-                            created_count += 1
-                            logging.info(f"Created subscriber with IMSI: {imsi}")
-                        else:
-                            logging.error(f"Failed to create subscriber with IMSI: {imsi}")
-                    except Exception as e:
-                        logging.error(f"Error inserting subscriber {imsi}: {str(e)}")
-                        continue
-            
-            logging.info(f"Successfully created {created_count} subscribers")
-            return True
-            
-        except Exception as e:
-            logging.error(f"Error creating subscribers from IMSI range: {str(e)}")
-            return False
-
-    def create_subscribers_from_nsi_data(self, nsi_data):
-        """Create subscribers from NSI data with extracted slice configuration"""
-        try:
-            # Extract IMSI range data
-            imsi_data = nsi_data.get("imsi_data", {})
-            
-            if not imsi_data.get("valid", False):
-                logging.error("No valid IMSI data found in NSI")
-                return False
-            
-            # Extract authentication configuration if provided
-            auth_config = nsi_data.get("auth_config")
-            
-            # Extract slice configuration from NSI data
-            slice_configs = self.extract_slice_config_from_nsi(nsi_data)
-            
-            logging.info(f"Extracted {len(slice_configs)} slice configurations from NSI data")
-            for i, slice_config in enumerate(slice_configs):
-                logging.info(f"Slice {i+1}: SST={slice_config.get('sst')}, SD={slice_config.get('sd')}")
-            
-            # Create subscribers with the extracted slice configuration and auth config
-            return self.create_subscribers_from_imsi_range(imsi_data, slice_configs, auth_config)
-            
-        except Exception as e:
-            logging.error(f"Error creating subscribers from NSI data: {str(e)}")
-            return False
 
     def extract_slice_config_from_nsi(self, nsi_data):
         """Extract slice configuration from NSI data for subscriber creation"""
@@ -774,46 +777,49 @@ class NsmfService():
             return 9  # Background
 
     def get_subscribers_by_imsi_range(self, start_imsi, end_imsi):
-        """Retrieve subscribers within an IMSI range"""
+        """Retrieve Open5GS user CRs that fall within an IMSI range"""
         try:
-            if self.subscribers_collection is None:
-                logging.error("MongoDB connection not available")
+            start_num = int(start_imsi)
+            end_num = int(end_imsi)
+            success, output = self._run_kubectl(["get", "open5gsusers", "-o", "json"])
+            if not success or not output:
                 return []
-            
-            # Query for subscribers within the IMSI range
-            subscribers = list(self.subscribers_collection.find({
-                "imsi": {
-                    "$gte": start_imsi,
-                    "$lte": end_imsi
-                }
-            }))
-            
-            return subscribers
-            
+            data = json.loads(output)
+            items = data.get("items", [])
+            results = []
+            for item in items:
+                imsi = item.get("spec", {}).get("imsi")
+                if not imsi:
+                    continue
+                imsi_num = int(imsi)
+                if start_num <= imsi_num <= end_num:
+                    results.append({
+                        "name": item.get("metadata", {}).get("name"),
+                        "imsi": imsi,
+                        "sst": item.get("spec", {}).get("sst"),
+                        "sd": item.get("spec", {}).get("sd"),
+                        "apn": item.get("spec", {}).get("apn"),
+                        "labels": item.get("metadata", {}).get("labels", {})
+                    })
+            return results
         except Exception as e:
-            logging.error(f"Error retrieving subscribers: {str(e)}")
+            logging.error(f"Error retrieving Open5GS users: {str(e)}")
             return []
 
     def delete_subscribers_by_imsi_range(self, start_imsi, end_imsi):
-        """Delete subscribers within an IMSI range"""
+        """Delete Open5GS user CRs within an IMSI range"""
         try:
-            if self.subscribers_collection is None:
-                logging.error("MongoDB connection not available")
-                return False
-            
-            # Delete subscribers within the IMSI range
-            result = self.subscribers_collection.delete_many({
-                "imsi": {
-                    "$gte": start_imsi,
-                    "$lte": end_imsi
-                }
-            })
-            
-            logging.info(f"Deleted {result.deleted_count} subscribers")
+            start_num = int(start_imsi)
+            end_num = int(end_imsi)
+            deleted = 0
+            for imsi_num in range(start_num, end_num + 1):
+                imsi = str(imsi_num).zfill(15)
+                if self._delete_open5gs_user(imsi):
+                    deleted += 1
+            logging.info(f"Deleted {deleted} Open5GS users across IMSI range {start_imsi}-{end_imsi}")
             return True
-            
         except Exception as e:
-            logging.error(f"Error deleting subscribers: {str(e)}")
+            logging.error(f"Error deleting Open5GS users: {str(e)}")
             return False
 
     def _generate_security_key(self):
@@ -823,31 +829,6 @@ class NsmfService():
     def _generate_opc_key(self):
         """Generate a random 32-character hexadecimal OPc key"""
         return ''.join(random.choices('0123456789ABCDEF', k=32))
-
-    def _generate_imeisv(self):
-        """Generate a random 16-digit IMEISV"""
-        return ''.join(random.choices('0123456789', k=16))
-
-    def close_mongo_connection(self):
-        """Close MongoDB connection"""
-        if self.mongo_client:
-            self.mongo_client.close()
-            logging.info("MongoDB connection closed")
-
-    def clear_all_subscribers(self):
-        """Clear all subscribers from MongoDB collection"""
-        try:
-            if self.subscribers_collection is None:
-                logging.error("MongoDB connection not available")
-                return False
-            
-            result = self.subscribers_collection.delete_many({})
-            logging.info(f"Cleared {result.deleted_count} subscribers from MongoDB")
-            return True
-            
-        except Exception as e:
-            logging.error(f"Error clearing subscribers: {str(e)}")
-            return False
 
     def delete_nsi(self, request):
         """Delete Network Slice Instance"""
@@ -914,25 +895,10 @@ class NsmfService():
             return {"error": f"Failed to delete NSI: {str(exception)}"}, 500
     
     def _cleanup_nsi_resources(self, s_nssai):
-        """Clean up resources associated with a deleted NSI"""
+        """Clean up Kubernetes resources associated with a deleted NSI"""
         try:
-            # Remove subscribers associated with this slice if MongoDB is available
-            if self.subscribers_collection:
-                # Parse S-NSSAI to get SST and SD
-                if len(s_nssai) >= 1:
-                    sst = int(s_nssai[0])
-                    sd = s_nssai[1:] if len(s_nssai) > 1 else None
-                    
-                    # Remove subscribers with matching slice configuration
-                    query = {"slice.0.sst": sst}
-                    if sd:
-                        query["slice.0.sd"] = sd
-                    
-                    result = self.subscribers_collection.delete_many(query)
-                    logging.info(f"Removed {result.deleted_count} subscribers for NSI {s_nssai}")
-            
-            # Additional cleanup can be added here (e.g., ONOS intents, K8s resources)
+            label_selector = f"nasp.slice={s_nssai}"
+            self._delete_open5gs_users_by_label(label_selector)
             logging.info(f"Resource cleanup completed for NSI {s_nssai}")
-            
         except Exception as e:
             logging.warning(f"Error during resource cleanup for NSI {s_nssai}: {str(e)}")

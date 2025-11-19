@@ -1,0 +1,56 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "net.gradiant.org/v1",
+      "kind": "Open5GSUser",
+      "metadata": {
+        "name": "nasp-user-999700000000001",
+        "labels": {
+          "app.kubernetes.io/name": "open5gs-operator",
+          "app.kubernetes.io/managed-by": "nasp",
+          "nasp.slice": "1111111",
+          "nasp.imsi": "999700000000001"
+        }
+      },
+      "spec": {
+        "imsi": "999700000000001",
+        "key": "465B5CE8B199B49FAA5F0A2EE238A6BC",
+        "opc": "E8ED289DEBA952E4283B54E88E6183CA",
+        "sd": "111111",
+        "sst": "1",
+        "apn": "internet",
+        "open5gs": {
+          "name": "open5gs-sample",
+          "namespace": "default"
+        }
+      }
+    },
+    {
+      "apiVersion": "net.gradiant.org/v1",
+      "kind": "Open5GSUser",
+      "metadata": {
+        "name": "nasp-user-999700000000002",
+        "labels": {
+          "app.kubernetes.io/name": "open5gs-operator",
+          "app.kubernetes.io/managed-by": "nasp",
+          "nasp.slice": "1111111",
+          "nasp.imsi": "999700000000002"
+        }
+      },
+      "spec": {
+        "imsi": "999700000000002",
+        "key": "465B5CE8B199B49FAA5F0A2EE238A6BC",
+        "opc": "E8ED289DEBA952E4283B54E88E6183CA",
+        "sd": "111111",
+        "sst": "1",
+        "apn": "internet",
+        "open5gs": {
+          "name": "open5gs-sample",
+          "namespace": "default"
+        }
+      }
+    }
+  ]
+}

@@ -290,8 +290,8 @@
                                         <label for="deployIMSI{{case.id}}" class="col-sm-3 col-form-label">IMSI Range</label>
                                         <div class="col-sm-9">
                                             <input type="text" class="form-control" id="deployIMSI{{case.id}}" 
-                                                   name="imsi_range" value="208950000000001-208950000000003" required>
-                                            <small class="form-text text-muted">Format: START-END (e.g., 208950000000001-208950000000003)</small>
+                                                   name="imsi_range" value="999700000000001-999700000000002" required>
+                                            <small class="form-text text-muted">Format: START-END (e.g., 999700000000001-999700000000002)</small>
                                         </div>
                                     </div>
                                     
@@ -544,13 +544,13 @@
                         "plmnSupportList": [
                             {
                                 "plmnId": {
-                                    "mcc": 208,
-                                    "mnc": 93
+                                    "mcc": 999,
+                                    "mnc": 70
                                 },
                                 "snssaiList": [
                                     {
                                         "sst": 1,
-                                        "sd": 111111
+                                        "sd": "0x111111"
                                     }
                                 ]
                             }
@@ -594,8 +594,8 @@
                     "replicas": 2,
                     "node": [],
                     "config": {
-                        "mcc": "208",
-                        "mnc": "93",
+                        "mcc": "999",
+                        "mnc": "70",
                         "nci": 411,
                         "idLength": 32,
                         "tac": 1,
@@ -611,7 +611,7 @@
                         "slices": [
                             {
                             "sst": 1,
-                            "sd": 111111
+                            "sd": "0x111111"
                             }
                         ],
                         "ignoreStreamIds": true
