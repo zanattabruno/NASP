@@ -3,3 +3,4 @@ response.txt
 config/kubeconfig
 *.github/*
 k8s-manifests/generated/*
+k8s-manifests/5g-charts/*
