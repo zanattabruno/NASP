@@ -2,3 +2,4 @@
 response.txt
 config/kubeconfig
 *.github/*
+k8s-manifests/generated/*

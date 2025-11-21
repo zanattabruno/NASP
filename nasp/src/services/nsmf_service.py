@@ -27,7 +27,7 @@ class NsmfService():
     
     # rApp Configuration
     RAPP_CONFIG = {
-        "base_url": os.getenv("RAPP_BASE_URL"),
+        "base_url": os.getenv("RAPP_BASE_URL","http://rapp-nasp.ricrapp.svc.cluster.local"),
         "endpoints": {
             "create_slice_policy": os.getenv("RAPP_CREATE_SLICE_ENDPOINT", "/create_slice_policy")
         }
